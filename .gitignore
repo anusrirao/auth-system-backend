@@ -1,3 +1,4 @@
+# Flutter
 build/
 .dart_tool/
 .flutter-plugins
@@ -9,5 +10,11 @@ build/
 *.iml
 android/local.properties
 android/.gradle/
-.env
 *.log
+
+# React / Node
+node_modules/
+dist/
+.env
+*.local
+.DS_Store
