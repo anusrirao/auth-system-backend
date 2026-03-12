@@ -1,7 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:auth_system_app/features/auth/presentation/data/services/auth_service.dart';
-import 'dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../data/services/auth_service.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../super_admin/presentation/screens/super_admin_dashboard.dart';
+import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
+import '../../../user/presentation/screens/user_dashboard_screen.dart';
 import 'register_screen.dart';
+import'../../../../core/constants/app_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,55 +16,67 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailOrMobileController = TextEditingController();
-  final _passwordController      = TextEditingController();
+  final _emailController    = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading       = false;
   bool _obscurePassword = true;
   String _errorMessage  = '';
 
   void _login() async {
-    // =============== VALIDATION ===============
-    if (_emailOrMobileController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      setState(() => _errorMessage = 'Please enter email/mobile and password');
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Please fill all fields');
       return;
     }
 
-    setState(() {
-      _isLoading    = true;
-      _errorMessage = '';
-    });
+    setState(() { _isLoading = true; _errorMessage = ''; });
 
-    // ✅ Call login API
     final result = await AuthService.login(
-      _emailOrMobileController.text.trim(),
+      _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     setState(() => _isLoading = false);
 
     if (result['token'] != null) {
-      // ✅ Login successful — pass token + user to dashboard
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardScreen(
-            token: result['token'],       // ✅ pass token
-            user:  result['user'] ?? {}, // ✅ pass user data
-          ),
-        ),
-      );
-    } else {
-      // ❌ Show error message
-      setState(() =>
-          _errorMessage = result['message'] ?? 'Login failed');
-    }
+
+  // ✅ Save to AppSession — no SharedPreferences needed
+  AppSession.token = result['token'];
+  AppSession.role  = result['role'] ?? 'user';
+
+  print("✅ Token saved: ${AppSession.token}");
+  print("✅ Role saved:  ${AppSession.role}");
+
+  final String role = AppSession.role;
+
+  if (!mounted) return;
+
+  if (role == 'super_admin') {
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => const SuperAdminDashboard()));
+  } else if (role == 'admin') {
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+  } else if (role == 'user') {
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => const UserDashboardScreen()));
+  } else {
+    setState(() => _errorMessage = 'Unknown role: $role');
+  }
+ } else {
+  setState(() => _errorMessage = result['message'] ?? 'Login failed');
+}
+  }
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -66,89 +84,92 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 48),
-
-              // Logo Icon
-              Center(
-                child: Container(
-                  height: 100,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.lock_outline,
-                      size: 50, color: Colors.blue),
+              Container(
+                height: 100,
+                width: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(Icons.lock_outline,
+                    size: 50, color: AppColors.primary),
               ),
               const SizedBox(height: 24),
-
               const Text("Welcome Back!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.bold)),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark)),
               const SizedBox(height: 8),
               const Text("Sign in to your account",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 15)),
+                  style: TextStyle(
+                      color: AppColors.textGrey, fontSize: 15)),
               const SizedBox(height: 40),
 
-              // ✅ Email or Mobile field
+              // Email or Mobile
               TextField(
-                controller: _emailOrMobileController,
+                controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: "Email or Mobile Number",
-                  hintText: "john@gmail.com or 9876543210",
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_outline,
+                      color: AppColors.primary),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: AppColors.greyLight,
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Password field
+              // Password
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
-                onSubmitted: (_) => _login(), // ✅ login on keyboard done
                 decoration: InputDecoration(
                   labelText: "Password",
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline,
+                      color: AppColors.primary),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: AppColors.grey,
+                    ),
                     onPressed: () => setState(
                         () => _obscurePassword = !_obscurePassword),
                   ),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: AppColors.greyLight,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // ✅ Error message
+              // Error message
               if (_errorMessage.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: AppColors.errorLight,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(
+                        color: AppColors.error.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.error_outline,
-                          color: Colors.red, size: 20),
+                          color: AppColors.error, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(_errorMessage,
                             style: const TextStyle(
-                                color: Colors.red, fontSize: 13)),
+                                color: AppColors.error,
+                                fontSize: 13)),
                       ),
                     ],
                   ),
@@ -159,11 +180,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
                 ),
                 child: _isLoading
                     ? const SizedBox(
@@ -179,12 +199,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Register link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Don't have an account? ",
-                      style: TextStyle(color: Colors.grey)),
+                      style: TextStyle(color: AppColors.textGrey)),
                   GestureDetector(
                     onTap: () => Navigator.push(
                         context,
@@ -192,12 +211,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (_) => const RegisterScreen())),
                     child: const Text("Sign Up",
                         style: TextStyle(
-                            color: Colors.blue,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
