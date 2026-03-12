@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Super Admin Dashboard</title>
+</head>
+<body>
+<h2>Super Admin Dashboard 👑</h2>
+<p id="welcomeMsg"></p>
+<button onclick="logout()">Logout</button>
+
+<script>
+  const token = localStorage.getItem("token");
+  const role  = localStorage.getItem("role");
+  const user  = JSON.parse(localStorage.getItem("user"));
+
+  if (!token || role !== "super_admin") {
+    alert("Access Denied!");
+    window.location.href = "/login";
+  }
+
+  document.getElementById("welcomeMsg").innerText =
+    `Welcome ${user.first_name} ${user.last_name} 👑`;
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = "/login";
+  }
+</script>
+</body>
+</html>
