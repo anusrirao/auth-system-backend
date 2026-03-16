@@ -1,22 +1,43 @@
 const express = require("express");
 const router = express.Router();
+
 const authController = require("../controllers/auth.controller");
 
-// ✅ Debug — check what's imported
-console.log("authController:", authController);
+// ================= DEBUG =================
+if (!authController) {
+  console.error("❌ Auth controller not loaded");
+} else {
+  console.log("✅ authController loaded:", Object.keys(authController));
+}
 
-// Register
+
+// ================= REGISTER =================
 router.post("/register", authController.register);
 
-// Verify OTP
+
+// ================= VERIFY OTP =================
 router.post("/verify-otp", authController.verifyOTP);
 
-// Login
+
+// ================= LOGIN =================
 router.post("/login", authController.login);
 
-// Test
+
+// ================= ADD USER (ADMIN / SUPERADMIN) =================
+if (authController.addUser) {
+  router.post("/add-user", authController.addUser);
+} else {
+  console.error("❌ addUser function missing in auth.controller.js");
+}
+
+
+// ================= TEST ROUTE =================
 router.get("/test", (req, res) => {
-  res.json({ message: "Auth route working ✅" });
+  res.json({
+    success: true,
+    message: "Auth routes working ✅"
+  });
 });
+
 
 module.exports = router;

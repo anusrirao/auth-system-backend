@@ -20,9 +20,9 @@ exports.getOverviewStats = (req, res) => {
 
   const totalTransactionsSql = `
     SELECT 
-      COUNT(*)        AS total_transactions,
-      SUM(amount)     AS total_amount,
-      SUM(commission) AS total_commission
+      COUNT(*)                    AS total_transactions,
+      COALESCE(SUM(amount),     0) AS total_amount,
+      COALESCE(SUM(commission), 0) AS total_commission
     FROM transactions
   `;
 
@@ -88,11 +88,7 @@ exports.getAllAdmins = (req, res) => {
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success: true,
-      count:   results.length,
-      data:    results
-    });
+    res.json({ success: true, count: results.length, data: results });
   });
 };
 
@@ -199,11 +195,7 @@ exports.activateAdmin = (req, res) => {
         return res.status(404).json({ message: "Admin not found" });
       }
 
-      res.json({
-        success:   true,
-        message:   "Admin activated successfully ✅",
-        is_active: 1
-      });
+      res.json({ success: true, message: "Admin activated successfully ✅", is_active: 1 });
     }
   );
 };
@@ -222,11 +214,7 @@ exports.deactivateAdmin = (req, res) => {
         return res.status(404).json({ message: "Admin not found" });
       }
 
-      res.json({
-        success:   true,
-        message:   "Admin deactivated successfully ✅",
-        is_active: 0
-      });
+      res.json({ success: true, message: "Admin deactivated successfully ✅", is_active: 0 });
     }
   );
 };
@@ -258,26 +246,10 @@ exports.getAllTransactions = (req, res) => {
   `;
 
   const params = [];
-
-  if (status) {
-    sql += ` AND t.status = ?`;
-    params.push(status);
-  }
-
-  if (type) {
-    sql += ` AND t.type = ?`;
-    params.push(type);
-  }
-
-  if (from_date) {
-    sql += ` AND DATE(t.created_at) >= ?`;
-    params.push(from_date);
-  }
-
-  if (to_date) {
-    sql += ` AND DATE(t.created_at) <= ?`;
-    params.push(to_date);
-  }
+  if (status)    { sql += ` AND t.status = ?`;            params.push(status); }
+  if (type)      { sql += ` AND t.type = ?`;              params.push(type); }
+  if (from_date) { sql += ` AND DATE(t.created_at) >= ?`; params.push(from_date); }
+  if (to_date)   { sql += ` AND DATE(t.created_at) <= ?`; params.push(to_date); }
 
   sql += ` ORDER BY t.created_at DESC`;
 
@@ -290,11 +262,8 @@ exports.getAllTransactions = (req, res) => {
     res.json({
       success: true,
       count:   results.length,
-      summary: {
-        total_amount:     totalAmount,
-        total_commission: totalCommission,
-      },
-      data: results
+      summary: { total_amount: totalAmount, total_commission: totalCommission },
+      data:    results
     });
   });
 };
@@ -322,22 +291,13 @@ exports.getWalletLoadRequests = (req, res) => {
   `;
 
   const params = [];
-
-  if (status) {
-    sql += ` AND w.status = ?`;
-    params.push(status);
-  }
-
+  if (status) { sql += ` AND w.status = ?`; params.push(status); }
   sql += ` ORDER BY w.requested_at DESC`;
 
   db.query(sql, params, (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success: true,
-      count:   results.length,
-      data:    results
-    });
+    res.json({ success: true, count: results.length, data: results });
   });
 };
 
@@ -437,8 +397,7 @@ exports.requestWalletLoad = (req, res) => {
   }
 
   db.query(
-    `INSERT INTO wallet_load_requests (admin_id, amount, status)
-     VALUES (?, ?, 'pending')`,
+    `INSERT INTO wallet_load_requests (admin_id, amount, status) VALUES (?, ?, 'pending')`,
     [adminId, amount],
     (err, result) => {
       if (err) return res.status(500).json({ message: err.message });
@@ -446,12 +405,7 @@ exports.requestWalletLoad = (req, res) => {
       res.status(201).json({
         success: true,
         message: "Wallet load request submitted ✅",
-        data: {
-          request_id: result.insertId,
-          admin_id:   adminId,
-          amount,
-          status:     "pending"
-        }
+        data: { request_id: result.insertId, admin_id: adminId, amount, status: "pending" }
       });
     }
   );
@@ -459,19 +413,18 @@ exports.requestWalletLoad = (req, res) => {
 
 // ================= DAILY REPORT (SUPER ADMIN) =================
 exports.getDailyReport = (req, res) => {
-  const { date } = req.query;
-
+  const { date }   = req.query;
   const targetDate = date || new Date().toISOString().split("T")[0];
 
   const sql = `
     SELECT
-      COUNT(*)                                             AS total_transactions,
-      SUM(amount)                                          AS total_amount,
-      SUM(commission)                                      AS total_commission,
-      SUM(net_amount)                                      AS total_net_amount,
-      SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
-      SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END) AS failed_count,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count
+      COUNT(*)                                                          AS total_transactions,
+      COALESCE(SUM(amount),     0)                                      AS total_amount,
+      COALESCE(SUM(commission), 0)                                      AS total_commission,
+      COALESCE(SUM(net_amount), 0)                                      AS total_net_amount,
+      COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) AS success_count,
+      COALESCE(SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END), 0) AS failed_count,
+      COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count
     FROM transactions
     WHERE DATE(created_at) = ?
   `;
@@ -479,12 +432,7 @@ exports.getDailyReport = (req, res) => {
   db.query(sql, [targetDate], (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success:     true,
-      report_type: "daily",
-      report_date: targetDate,
-      data:        results[0]
-    });
+    res.json({ success: true, report_type: "daily", report_date: targetDate, data: results[0] });
   });
 };
 
@@ -492,16 +440,16 @@ exports.getDailyReport = (req, res) => {
 exports.getWeeklyReport = (req, res) => {
   const sql = `
     SELECT
-      YEARWEEK(created_at, 1)                              AS week,
-      COUNT(*)                                             AS total_transactions,
-      SUM(amount)                                          AS total_amount,
-      SUM(commission)                                      AS total_commission,
-      SUM(net_amount)                                      AS total_net_amount,
-      SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
-      SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END) AS failed_count,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
-      MIN(DATE(created_at))                                AS week_start,
-      MAX(DATE(created_at))                                AS week_end
+      YEARWEEK(created_at, 1)                                           AS week,
+      COUNT(*)                                                          AS total_transactions,
+      COALESCE(SUM(amount),     0)                                      AS total_amount,
+      COALESCE(SUM(commission), 0)                                      AS total_commission,
+      COALESCE(SUM(net_amount), 0)                                      AS total_net_amount,
+      COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) AS success_count,
+      COALESCE(SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END), 0) AS failed_count,
+      COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+      MIN(DATE(created_at))                                             AS week_start,
+      MAX(DATE(created_at))                                             AS week_end
     FROM transactions
     GROUP BY YEARWEEK(created_at, 1)
     ORDER BY week DESC
@@ -511,33 +459,26 @@ exports.getWeeklyReport = (req, res) => {
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success:     true,
-      report_type: "weekly",
-      count:       results.length,
-      data:        results
-    });
+    res.json({ success: true, report_type: "weekly", count: results.length, data: results });
   });
 };
 
 // ================= MONTHLY REPORT (SUPER ADMIN) =================
-// ✅ FIXED — added month_name to GROUP BY
 exports.getMonthlyReport = (req, res) => {
-  const { year } = req.query;
-
+  const { year }   = req.query;
   const targetYear = year || new Date().getFullYear();
 
   const sql = `
     SELECT
-      DATE_FORMAT(created_at, '%Y-%m')                     AS month,
-      DATE_FORMAT(created_at, '%M %Y')                     AS month_name,
-      COUNT(*)                                             AS total_transactions,
-      SUM(amount)                                          AS total_amount,
-      SUM(commission)                                      AS total_commission,
-      SUM(net_amount)                                      AS total_net_amount,
-      SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_count,
-      SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END) AS failed_count,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count
+      DATE_FORMAT(created_at, '%Y-%m')                                  AS month,
+      DATE_FORMAT(created_at, '%M %Y')                                  AS month_name,
+      COUNT(*)                                                          AS total_transactions,
+      COALESCE(SUM(amount),     0)                                      AS total_amount,
+      COALESCE(SUM(commission), 0)                                      AS total_commission,
+      COALESCE(SUM(net_amount), 0)                                      AS total_net_amount,
+      COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) AS success_count,
+      COALESCE(SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END), 0) AS failed_count,
+      COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count
     FROM transactions
     WHERE YEAR(created_at) = ?
     GROUP BY
@@ -549,13 +490,7 @@ exports.getMonthlyReport = (req, res) => {
   db.query(sql, [targetYear], (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success:     true,
-      report_type: "monthly",
-      year:        targetYear,
-      count:       results.length,
-      data:        results
-    });
+    res.json({ success: true, report_type: "monthly", year: targetYear, count: results.length, data: results });
   });
 };
 
@@ -565,30 +500,22 @@ exports.getPlatformReport = (req, res) => {
 
   let sql = `
     SELECT
-      COUNT(*)                                               AS total_transactions,
-      SUM(amount)                                            AS total_amount,
-      SUM(commission)                                        AS total_commission,
-      SUM(net_amount)                                        AS total_net_amount,
-      SUM(CASE WHEN status = 'success'    THEN 1 ELSE 0 END) AS success_count,
-      SUM(CASE WHEN status = 'failed'     THEN 1 ELSE 0 END) AS failed_count,
-      SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END) AS pending_count,
-      SUM(CASE WHEN type   = 'settlement' THEN 1 ELSE 0 END) AS settlement_count,
-      SUM(CASE WHEN type   = 'transfer'   THEN 1 ELSE 0 END) AS transfer_count
+      COUNT(*)                                                          AS total_transactions,
+      COALESCE(SUM(amount),     0)                                      AS total_amount,
+      COALESCE(SUM(commission), 0)                                      AS total_commission,
+      COALESCE(SUM(net_amount), 0)                                      AS total_net_amount,
+      COALESCE(SUM(CASE WHEN status = 'success'    THEN 1 ELSE 0 END), 0) AS success_count,
+      COALESCE(SUM(CASE WHEN status = 'failed'     THEN 1 ELSE 0 END), 0) AS failed_count,
+      COALESCE(SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END), 0) AS pending_count,
+      COALESCE(SUM(CASE WHEN type   = 'settlement' THEN 1 ELSE 0 END), 0) AS settlement_count,
+      COALESCE(SUM(CASE WHEN type   = 'transfer'   THEN 1 ELSE 0 END), 0) AS transfer_count
     FROM transactions
     WHERE 1=1
   `;
 
   const params = [];
-
-  if (from_date) {
-    sql += ` AND DATE(created_at) >= ?`;
-    params.push(from_date);
-  }
-
-  if (to_date) {
-    sql += ` AND DATE(created_at) <= ?`;
-    params.push(to_date);
-  }
+  if (from_date) { sql += ` AND DATE(created_at) >= ?`; params.push(from_date); }
+  if (to_date)   { sql += ` AND DATE(created_at) <= ?`; params.push(to_date); }
 
   db.query(sql, params, (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
@@ -610,12 +537,63 @@ exports.getCommissionSettings = (req, res) => {
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ message: err.message });
 
-    res.json({
-      success: true,
-      count:   results.length,
-      data:    results
-    });
+    res.json({ success: true, count: results.length, data: results });
   });
+};
+
+// ================= ADD NEW COMMISSION SETTING (SUPER ADMIN) =================
+exports.addCommissionSetting = (req, res) => {
+  const { transaction_type, commission_type, commission_value } = req.body;
+
+  if (!transaction_type || !commission_type || commission_value === undefined) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  if (!["percentage", "flat"].includes(commission_type)) {
+    return res.status(400).json({ message: "commission_type must be 'percentage' or 'flat'" });
+  }
+
+  if (commission_value < 0) {
+    return res.status(400).json({ message: "commission_value cannot be negative" });
+  }
+
+  if (commission_type === "percentage" && commission_value > 100) {
+    return res.status(400).json({ message: "Percentage cannot exceed 100" });
+  }
+
+  db.query(
+    "SELECT * FROM commission_settings WHERE transaction_type = ?",
+    [transaction_type],
+    (err, existing) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: `Commission for '${transaction_type}' already exists` });
+      }
+
+      db.query(
+        `INSERT INTO commission_settings 
+         (transaction_type, commission_type, commission_value, is_active)
+         VALUES (?, ?, ?, 1)`,
+        [transaction_type, commission_type, commission_value],
+        (err, result) => {
+          if (err) return res.status(500).json({ message: err.message });
+
+          res.status(201).json({
+            success: true,
+            message: "Commission setting added ✅",
+            data: {
+              id:               result.insertId,
+              transaction_type,
+              commission_type,
+              commission_value,
+              is_active:        1
+            }
+          });
+        }
+      );
+    }
+  );
 };
 
 // ================= UPDATE COMMISSION SETTING (SUPER ADMIN) =================
@@ -653,12 +631,8 @@ exports.updateCommissionSetting = (req, res) => {
 
       res.json({
         success: true,
-        message: "Commission setting updated ✅",
-        data: {
-          id,
-          commission_type,
-          commission_value
-        }
+        message: "Commission updated ✅",
+        data:    { id, commission_type, commission_value }
       });
     }
   );
@@ -669,7 +643,7 @@ exports.activateCommission = (req, res) => {
   const { id } = req.params;
 
   db.query(
-    "UPDATE commission_settings SET is_active = 1 WHERE id = ?",
+    "UPDATE commission_settings SET is_active = 1, updated_at = NOW() WHERE id = ?",
     [id],
     (err, result) => {
       if (err) return res.status(500).json({ message: err.message });
@@ -678,11 +652,7 @@ exports.activateCommission = (req, res) => {
         return res.status(404).json({ message: "Commission setting not found" });
       }
 
-      res.json({
-        success:   true,
-        message:   "Commission activated ✅",
-        is_active: 1
-      });
+      res.json({ success: true, message: "Commission activated ✅", is_active: 1 });
     }
   );
 };
@@ -692,7 +662,7 @@ exports.deactivateCommission = (req, res) => {
   const { id } = req.params;
 
   db.query(
-    "UPDATE commission_settings SET is_active = 0 WHERE id = ?",
+    "UPDATE commission_settings SET is_active = 0, updated_at = NOW() WHERE id = ?",
     [id],
     (err, result) => {
       if (err) return res.status(500).json({ message: err.message });
@@ -701,11 +671,318 @@ exports.deactivateCommission = (req, res) => {
         return res.status(404).json({ message: "Commission setting not found" });
       }
 
+      res.json({ success: true, message: "Commission deactivated ✅", is_active: 0 });
+    }
+  );
+};
+
+// ================= GET GLOBAL COMMISSION (SUPER ADMIN) =================
+exports.getGlobalCommission = (req, res) => {
+  const sql = `SELECT * FROM commission_settings WHERE is_active = 1 LIMIT 1`;
+
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ message: err.message });
+
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: "No commission setting found" });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        commission_type:  results[0].commission_type,
+        commission_value: results[0].commission_value
+      }
+    });
+  });
+};
+
+// ================= UPDATE GLOBAL COMMISSION (SUPER ADMIN) =================
+// ✅ FIXED — commission_type is now optional (uses existing DB value if not sent)
+exports.updateGlobalCommission = (req, res) => {
+  const { commission_type, commission_value } = req.body;
+
+  // Only commission_value is required
+  if (commission_value === undefined || commission_value === null || commission_value === "") {
+    return res.status(400).json({ message: "commission_value is required" });
+  }
+
+  const parsed = parseFloat(commission_value);
+
+  if (isNaN(parsed) || parsed < 0) {
+    return res.status(400).json({ message: "commission_value must be a valid positive number" });
+  }
+
+  if (commission_type && !["percentage", "flat"].includes(commission_type)) {
+    return res.status(400).json({ message: "commission_type must be 'percentage' or 'flat'" });
+  }
+
+  if (commission_type === "percentage" && parsed > 100) {
+    return res.status(400).json({ message: "Percentage cannot exceed 100" });
+  }
+
+  // If commission_type not sent, keep existing value using COALESCE
+  db.query(
+    `UPDATE commission_settings 
+     SET commission_type  = COALESCE(?, commission_type),
+         commission_value = ?,
+         updated_at       = NOW()`,
+    [commission_type || null, parsed],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: err.message });
+
       res.json({
-        success:   true,
-        message:   "Commission deactivated ✅",
-        is_active: 0
+        success: true,
+        message: `Global commission updated ✅ (${result.affectedRows} types updated)`,
+        data: {
+          commission_type:  commission_type || "unchanged",
+          commission_value: parsed,
+          rows_updated:     result.affectedRows
+        }
       });
+    }
+  );
+};
+
+// ================= GET COMMISSION HISTORY (SUPER ADMIN) =================
+exports.getCommissionHistory = (req, res) => {
+  const { type, from_date, to_date, page = 1, limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
+
+  const conditions = [];
+  const params     = [];
+
+  if (type) {
+    conditions.push("ch.transaction_type = ?");
+    params.push(type);
+  }
+  if (from_date) {
+    conditions.push("DATE(ch.created_at) >= ?");
+    params.push(from_date);
+  }
+  if (to_date) {
+    conditions.push("DATE(ch.created_at) <= ?");
+    params.push(to_date);
+  }
+
+  const where = conditions.length > 0
+    ? "WHERE " + conditions.join(" AND ")
+    : "";
+
+  const summarySQL = `
+    SELECT
+      COUNT(*)                             AS total_records,
+      COALESCE(SUM(commission_earned),  0) AS total_commission_earned,
+      COALESCE(SUM(transaction_amount), 0) AS total_transaction_amount
+    FROM commission_history ch
+    ${where}
+  `;
+
+  const listSQL = `
+    SELECT
+      ch.id,
+      ch.transaction_id,
+      ch.transaction_type,
+      ch.commission_type,
+      ch.commission_value,
+      ch.transaction_amount,
+      ch.commission_earned,
+      ch.created_at,
+      CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) AS sender_name,
+      CONCAT(r.first_name, ' ', COALESCE(r.last_name, '')) AS receiver_name
+    FROM commission_history ch
+    LEFT JOIN users s ON ch.sender_id   = s.id
+    LEFT JOIN users r ON ch.receiver_id = r.id
+    ${where}
+    ORDER BY ch.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(summarySQL, params, (err, summaryResult) => {
+    if (err) return res.status(500).json({ message: err.message });
+
+    db.query(listSQL, [...params, parseInt(limit), parseInt(offset)], (err, listResult) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      res.json({
+        success: true,
+        summary: {
+          total_records:            summaryResult[0].total_records,
+          total_commission_earned:  summaryResult[0].total_commission_earned,
+          total_transaction_amount: summaryResult[0].total_transaction_amount,
+        },
+        pagination: {
+          page:        parseInt(page),
+          limit:       parseInt(limit),
+          total_pages: Math.ceil(summaryResult[0].total_records / limit),
+        },
+        data: listResult
+      });
+    });
+  });
+};
+
+// ================= GET COMMISSION HISTORY SUMMARY BY TYPE (SUPER ADMIN) =================
+exports.getCommissionSummaryByType = (req, res) => {
+  const sql = `
+    SELECT
+      transaction_type,
+      COUNT(*)                             AS total_transactions,
+      COALESCE(SUM(transaction_amount), 0) AS total_amount,
+      COALESCE(SUM(commission_earned),  0) AS total_commission,
+      COALESCE(AVG(commission_earned),  0) AS avg_commission
+    FROM commission_history
+    GROUP BY transaction_type
+    ORDER BY total_commission DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ message: err.message });
+
+    res.json({ success: true, data: results });
+  });
+};
+
+// ================= SEND NOTIFICATION (SUPER ADMIN) =================
+exports.sendNotification = (req, res) => {
+  const { user_id, title, message } = req.body;
+
+  if (!title || !message) {
+    return res.status(400).json({ message: "Title and message are required" });
+  }
+
+  db.query(
+    `INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)`,
+    [user_id || null, title, message],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      res.status(201).json({
+        success: true,
+        message: user_id
+          ? `Notification sent to user ${user_id} ✅`
+          : "Notification sent to all users ✅",
+        data: {
+          id:      result.insertId,
+          user_id: user_id || null,
+          title,
+          message
+        }
+      });
+    }
+  );
+};
+
+// ================= GET ALL NOTIFICATIONS (SUPER ADMIN) =================
+exports.getAllNotifications = (req, res) => {
+  const sql = `
+    SELECT
+      n.id,
+      n.title,
+      n.message,
+      n.is_read,
+      n.created_at,
+      n.user_id,
+      CASE 
+        WHEN n.user_id IS NULL THEN 'All Users'
+        ELSE CONCAT(u.first_name, ' ', u.last_name)
+      END AS sent_to,
+      u.email,
+      u.role
+    FROM notifications n
+    LEFT JOIN users u ON n.user_id = u.id
+    ORDER BY n.created_at DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ message: err.message });
+
+    res.json({ success: true, count: results.length, data: results });
+  });
+};
+
+// ================= GET MY NOTIFICATIONS (USER/ADMIN) =================
+exports.getMyNotifications = (req, res) => {
+  const userId = req.user.id;
+
+  const sql = `
+    SELECT id, title, message, is_read, created_at
+    FROM notifications
+    WHERE user_id = ? OR user_id IS NULL
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: err.message });
+
+    const unreadCount = results.filter(n => n.is_read === 0).length;
+
+    res.json({
+      success:      true,
+      count:        results.length,
+      unread_count: unreadCount,
+      data:         results
+    });
+  });
+};
+
+// ================= MARK AS READ (USER/ADMIN) =================
+exports.markAsRead = (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  db.query(
+    `UPDATE notifications 
+     SET is_read = 1 
+     WHERE id = ? AND (user_id = ? OR user_id IS NULL)`,
+    [id, userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      res.json({ success: true, message: "Notification marked as read ✅" });
+    }
+  );
+};
+
+// ================= MARK ALL AS READ (USER/ADMIN) =================
+exports.markAllAsRead = (req, res) => {
+  const userId = req.user.id;
+
+  db.query(
+    `UPDATE notifications 
+     SET is_read = 1 
+     WHERE (user_id = ? OR user_id IS NULL) AND is_read = 0`,
+    [userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      res.json({
+        success: true,
+        message: `${result.affectedRows} notifications marked as read ✅`
+      });
+    }
+  );
+};
+
+// ================= DELETE NOTIFICATION (SUPER ADMIN) =================
+exports.deleteNotification = (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    "DELETE FROM notifications WHERE id = ?",
+    [id],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: err.message });
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      res.json({ success: true, message: "Notification deleted ✅" });
     }
   );
 };

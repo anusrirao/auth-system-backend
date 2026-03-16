@@ -7,55 +7,89 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Static files
-app.use(express.static("public")); // ← add this line
-
 // ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 
-// ================= DEBUG (remove later) =================
+// Static files
+app.use(express.static("public"));
+
+// ================= DEBUG LOGGER =================
 app.use((req, res, next) => {
-  console.log(`➡️  ${req.method} ${req.url}`);
+  console.log(`➡️ ${req.method} ${req.url}`);
   next();
 });
 
 // ================= TEST ROUTE =================
 app.post("/api/test", (req, res) => {
   console.log("TEST API HIT");
-  res.json({ message: "API working" });
+  res.json({ message: "API working ✅" });
 });
 
 // ================= API ROUTES =================
 
 // Auth Routes
-try {
-  const authRoutes = require("./routes/auth.routes");
-  app.use("/api/auth", authRoutes);
-  console.log("✅ Auth routes loaded");
-} catch (err) {
-  console.error("❌ Auth routes failed:", err.message);
-}
+const authRoutes = require("./routes/auth.routes");
+app.use("/api/auth", authRoutes);
+console.log("✅ Auth routes loaded");
 
 // Dashboard Routes
-try {
-  const dashboardRoutes = require("./routes/dashboard.routes");
-  app.use("/api/dashboard", dashboardRoutes);
-  console.log("✅ Dashboard routes loaded");
-} catch (err) {
-  console.error("❌ Dashboard routes failed:", err.message);
-}
+const dashboardRoutes = require("./routes/dashboard.routes");
+app.use("/api/dashboard", dashboardRoutes);
+console.log("✅ Dashboard routes loaded");
 
 // Admin Routes
-try {
-  const adminRoutes = require("./routes/admin.routes");
-  app.use("/api/admin", adminRoutes);
-  console.log("✅ Admin routes loaded");
-} catch (err) {
-  console.error("❌ Admin routes failed:", err.message);
-}
+const adminRoutes = require("./routes/admin.routes");
+app.use("/api/admin", adminRoutes);
+console.log("✅ Admin routes loaded");
+
+// Admin Management Routes
+const adminManagementRoutes = require("./routes/adminManagement.routes");
+app.use("/api/admin-management", adminManagementRoutes);
+console.log("✅ AdminManagement routes loaded");
+
+// Superadmin Routes
+const superadminRoutes = require("./routes/superadmin.routes");
+app.use("/api/superadmin", superadminRoutes);
+console.log("✅ Superadmin routes loaded");
+
+// Wallet Routes
+const walletRoutes = require("./routes/wallet.routes");
+app.use("/api/wallet", walletRoutes);
+console.log("✅ Wallet routes loaded");
+
+// Transaction Routes
+const transactionRoutes = require("./routes/transaction.routes");
+app.use("/api/transaction", transactionRoutes);
+console.log("✅ Transaction routes loaded");
+
+// Profile Routes
+const profileRoutes = require("./routes/profile.routes");
+app.use("/api/profile", profileRoutes);
+console.log("✅ Profile routes loaded");
+
+// Role Routes
+const roleRoutes = require("./routes/role.routes");
+app.use("/api/role", roleRoutes);
+console.log("✅ Role routes loaded");
+
+// Notification Routes
+const notificationRoutes = require("./routes/notification.routes");
+app.use("/api/notifications", notificationRoutes);
+console.log("✅ Notification routes loaded");
+
+// Admin Dashboard Routes
+const adminDashboardRoutes = require("./routes/adminDashboard.routes");
+app.use("/api/admin-dashboard", adminDashboardRoutes);
+console.log("✅ Admin Dashboard routes loaded");
+
+// Commission Routes
+const commissionRoutes = require("./routes/commission.routes");
+app.use("/api/commissions", commissionRoutes);
+console.log("✅ Commission routes loaded");
 
 // ================= STATIC HTML ROUTES =================
+
 app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "register.html"));
 });
@@ -68,22 +102,41 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "dashboard.html"));
 });
 
+app.get("/admin-dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "admin-dashboard.html"));
+});
+
+app.get("/superadmin-dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "superadmin-dashboard.html"));
+});
+
+// ✅ Commission Settings Page
+app.get("/commission-settings", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "commission-settings.html"));
+});
+
 app.get("/", (req, res) => {
-  res.send("🚀 Server is running");
+  res.send("🚀 Shadval Pay Server Running");
 });
 
-// ================= 404 HANDLER =================
+// ================= API 404 HANDLER =================
 app.use("/api", (req, res) => {
-  res.status(404).json({ error: "API route not found" });
+  res.status(404).json({
+    success: false,
+    error: "API route not found"
+  });
 });
 
+// ================= GLOBAL 404 =================
 app.use((req, res) => {
   res.status(404).send("Route not found");
 });
 
 // ================= START SERVER =================
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(` API Base URL: http://localhost:${PORT}/api`);
 });
