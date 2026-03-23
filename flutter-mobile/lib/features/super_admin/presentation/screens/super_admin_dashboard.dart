@@ -4,6 +4,8 @@ import '../../../../core/widgets/stat_card.dart';
 import '../../../../core/widgets/transaction_tile.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import 'admin_management_screen.dart';
+import 'commission_settings_screen.dart';
+import 'reports_screen.dart';                          // ← NEW
 
 class SuperAdminDashboard extends StatelessWidget {
   const SuperAdminDashboard({super.key});
@@ -31,17 +33,16 @@ class SuperAdminDashboard extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Top row
+                  // ── TOP ROW ──────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text("Shadval Pay",
                               style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13)),
+                                  color: Colors.white70, fontSize: 13)),
                           SizedBox(height: 2),
                           Text("Super Admin",
                               style: TextStyle(
@@ -50,12 +51,36 @@ class SuperAdminDashboard extends StatelessWidget {
                                   fontWeight: FontWeight.bold)),
                         ],
                       ),
+                      // Notifications + Profile + Logout
                       Row(
                         children: [
-                          const CircleAvatar(
-                            backgroundColor: Colors.white24,
-                            child: Icon(Icons.admin_panel_settings,
-                                color: Colors.white),
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text("Notifications coming soon!")),
+                              );
+                            },
+                            child: const CircleAvatar(
+                              backgroundColor: Colors.white24,
+                              child: Icon(Icons.notifications_outlined,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text("Profile coming soon!")),
+                              );
+                            },
+                            child: const CircleAvatar(
+                              backgroundColor: Colors.white24,
+                              child: Icon(Icons.admin_panel_settings,
+                                  color: Colors.white, size: 20),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           GestureDetector(
@@ -76,7 +101,8 @@ class SuperAdminDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Total Commission Banner
+
+                  // ── COMMISSION BANNER ─────────────────
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -86,15 +112,14 @@ class SuperAdminDashboard extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
+                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text("Total Commission Earned",
                                 style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12)),
+                                    color: Colors.white70, fontSize: 12)),
                             SizedBox(height: 4),
-                            Text("₹ 1,24,500.00",
+                            Text("Rs. 1,24,500.00",
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 24,
@@ -128,7 +153,8 @@ class SuperAdminDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Stats Grid
+
+                    // ── PLATFORM OVERVIEW ─────────────
                     const Text("Platform Overview",
                         style: TextStyle(
                             fontSize: 16,
@@ -141,7 +167,7 @@ class SuperAdminDashboard extends StatelessWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 1.4,
+                      childAspectRatio: 1.1,
                       children: const [
                         StatCard(
                           title: "Total Admins",
@@ -166,7 +192,7 @@ class SuperAdminDashboard extends StatelessWidget {
                         ),
                         StatCard(
                           title: "Total Volume",
-                          value: "₹ 49.8L",
+                          value: "Rs. 49.8L",
                           icon: Icons.account_balance_outlined,
                           color: AppColors.superAdminColor,
                           subtitle: "This Month",
@@ -175,13 +201,15 @@ class SuperAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
-                    // Quick Actions
+                    // ── QUICK ACTIONS ─────────────────
                     const Text("Quick Actions",
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textDark)),
                     const SizedBox(height: 12),
+
+                    // Row 1
                     Row(
                       children: [
                         Expanded(
@@ -203,26 +231,45 @@ class SuperAdminDashboard extends StatelessWidget {
                             label: "Commission Settings",
                             icon: Icons.percent_outlined,
                             color: AppColors.superAdminColor,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        "Commission Settings coming soon!")),
-                              );
-                            },
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CommissionSettingsScreen()),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Row 2                              ← UPDATED — Reports wired
+                    Row(
+                      children: [
                         Expanded(
                           child: _ActionButton(
                             label: "All Reports",
                             icon: Icons.bar_chart_outlined,
                             color: AppColors.userColor,
+                            onTap: () => Navigator.push(   // ← was SnackBar
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const SuperAdminReportsScreen()),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionButton(
+                            label: "All Transactions",
+                            icon: Icons.swap_horiz_outlined,
+                            color: AppColors.primary,
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content:
-                                        Text("Reports coming soon!")),
+                                    content: Text(
+                                        "All Transactions coming soon!")),
                               );
                             },
                           ),
@@ -231,7 +278,7 @@ class SuperAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
-                    // Recent Transactions
+                    // ── RECENT TRANSACTIONS ───────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -241,7 +288,12 @@ class SuperAdminDashboard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textDark)),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () => Navigator.push(   // ← wired to Reports
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const SuperAdminReportsScreen()),
+                          ),
                           child: const Text("View All",
                               style:
                                   TextStyle(color: AppColors.primary)),
@@ -252,19 +304,19 @@ class SuperAdminDashboard extends StatelessWidget {
                     const TransactionTile(
                       name: "MR SREEKANTH NETHALA",
                       date: "02-02-2026 09:53 PM",
-                      amount: "₹ 29,400",
+                      amount: "Rs. 29,400",
                       status: "PENDING",
                     ),
                     const TransactionTile(
                       name: "Wallet Load - Admin 1",
                       date: "01-02-2026 11:20 AM",
-                      amount: "₹ 15,000",
+                      amount: "Rs. 15,000",
                       status: "SUCCESS",
                     ),
                     const TransactionTile(
                       name: "Settlement - Admin 3",
                       date: "31-01-2026 03:45 PM",
-                      amount: "₹ 5,000",
+                      amount: "Rs. 5,000",
                       status: "FAILED",
                     ),
                   ],
@@ -278,7 +330,7 @@ class SuperAdminDashboard extends StatelessWidget {
   }
 }
 
-// ── Private helper widget ──────────────────────────
+// ── Action Button Widget ───────────────────────────
 class _ActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
