@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login — ShadVal Pay</title>
+</head>
+<body>
+<h2>Login</h2>
+<input type="text"     id="emailOrMobile" placeholder="Email or Mobile"><br><br>
+<input type="password" id="password"      placeholder="Password"><br><br>
+<button onclick="login()">Login</button>
+<p id="msg"></p>
+<p>No account? <a href="/register">Register</a></p>
+
+<script>
+async function login() {
+  const emailOrMobile = document.getElementById("emailOrMobile").value.trim();
+  const password      = document.getElementById("password").value.trim();
+
+  if (!emailOrMobile || !password) {
+    alert("Enter email/mobile and password");
+    return;
+  }
+
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ emailOrMobile, password })
+  });
+
+  const data = await response.json();
+
+  if (response.ok) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role",  data.user.role);
+    localStorage.setItem("user",  JSON.stringify(data.user));
+
+    const role = data.user.role;
+
+    if (role === "super_admin") {
+      window.location.href = "/superadmin-dashboard";
+    } else if (role === "admin") {
+      window.location.href = "/admin-dashboard";
+    } else if (role === "user") {
+      window.location.href = "/dashboard";
+    } else {
+      alert("Unknown role!");
+    }
+  } else {
+    alert("Error: " + data.message);
+  }
+}
+</script>
+</body>
+</html>

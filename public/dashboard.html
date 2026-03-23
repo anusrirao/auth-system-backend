@@ -1,0 +1,57 @@
+html<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard — ShadVal Pay</title>
+</head>
+<body>
+
+<h2>ShadVal Pay Dashboard</h2>
+<div id="content">Loading...</div>
+<br>
+<button onclick="logout()">Logout</button>
+
+<script>
+  const token = localStorage.getItem("token");
+
+  // ✅ If no token → redirect to login
+  if (!token) {
+    alert("Please login first");
+    window.location.href = "login.html";
+  }
+
+async function loadDashboard() {
+  const response = await fetch("/api/dashboard", {
+    method: "GET",
+    headers: {
+      "Authorization": "Bearer " + token
+    }
+  });
+
+  const data = await response.json();
+
+  if (response.ok) {
+    // ✅ Show user data from database
+    const u = data.user;
+    document.getElementById("content").innerHTML = `
+      <p><strong>Welcome ${u.first_name} ${u.last_name} 👋</strong></p>
+      <p><strong>User ID:</strong> ${u.id}</p>
+      <p><strong>Email:</strong> ${u.email || "-"}</p>
+      <p><strong>Mobile:</strong> ${u.mobile || "-"}</p>
+      <p><strong>Role:</strong> ${u.role}</p>
+    `;
+  } else {
+    alert("Session expired. Please login again.");
+    logout();
+  }
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "login.html";
+}
+
+  loadDashboard();
+</script>
+</body>
+</html>

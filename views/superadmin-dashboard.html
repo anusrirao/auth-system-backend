@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Super Admin — Shadval Pay</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #f0f2f8;
+      --surface:  #ffffff;
+      --card:     #ffffff;
+      --border:   #e8eaf0;
+      --purple:   #6c3fc5;
+      --purple2:  #8b5cf6;
+      --blue:     #2563eb;
+      --green:    #059669;
+      --orange:   #d97706;
+      --danger:   #dc2626;
+      --text:     #1a1a2e;
+      --muted:    #6b7280;
+      --font:     'DM Sans', sans-serif;
+      --mono:     'DM Mono', monospace;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+    /* SIDEBAR */
+    .sidebar { width: 240px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 0; position: fixed; top: 0; left: 0; bottom: 0; box-shadow: 2px 0 8px rgba(0,0,0,0.06); }
+    .logo { padding: 24px 20px; font-size: 18px; font-weight: 600; background: linear-gradient(135deg, var(--purple), var(--purple2)); color: #fff; }
+    .logo-sub { font-size: 12px; font-weight: 400; opacity: 0.8; margin-top: 2px; }
+    .nav { padding: 12px 0; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; font-size: 14px; color: var(--muted); cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; }
+    .nav-item:hover { color: var(--purple); background: rgba(108,63,197,0.05); }
+    .nav-item.active { color: var(--purple); border-left-color: var(--purple); background: rgba(108,63,197,0.08); font-weight: 500; }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+    .logout-btn { width: 100%; padding: 10px; background: #fff1f1; border: 1px solid #fecaca; border-radius: 8px; color: var(--danger); font-family: var(--font); font-size: 13px; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+    .logout-btn:hover { background: #fee2e2; }
+
+    /* MAIN */
+    .main { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+    /* PURPLE HEADER */
+    .hero {
+      background: linear-gradient(135deg, #4c1d95 0%, #6c3fc5 50%, #7c3aed 100%);
+      padding: 28px 32px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; right: 100px;
+      width: 280px; height: 280px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+    .hero-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .hero-greeting { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+    .hero-name { font-size: 22px; font-weight: 600; color: #fff; }
+    .hero-actions { display: flex; gap: 10px; }
+    .hero-btn { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: background 0.15s; border: none; color: #fff; }
+    .hero-btn:hover { background: rgba(255,255,255,0.25); }
+    .commission-card { background: rgba(255,255,255,0.12); border-radius: 16px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); }
+    .commission-label { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 8px; }
+    .commission-amount { font-size: 30px; font-weight: 600; color: #fff; font-family: var(--mono); }
+    .commission-badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: #fff; font-weight: 500; }
+
+    /* CONTENT AREA */
+    .content { padding: 0 32px 32px; margin-top: -48px; position: relative; z-index: 10; }
+
+    /* OVERVIEW CARDS */
+    .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .overview-card { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+    .ov-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .ov-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .ov-icon.blue   { background: #eff6ff; }
+    .ov-icon.green  { background: #f0fdf4; }
+    .ov-icon.purple { background: #f5f3ff; }
+    .ov-icon.orange { background: #fffbeb; }
+    .ov-badge { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; }
+    .ov-badge.blue   { background: #eff6ff; color: var(--blue); }
+    .ov-badge.green  { background: #f0fdf4; color: var(--green); }
+    .ov-badge.purple { background: #f5f3ff; color: var(--purple); }
+    .ov-badge.orange { background: #fffbeb; color: var(--orange); }
+    .ov-value { font-size: 26px; font-weight: 600; color: var(--text); font-family: var(--mono); margin-bottom: 4px; }
+    .ov-label { font-size: 13px; color: var(--muted); }
+
+    /* QUICK ACTIONS */
+    .section-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+    .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    .quick-card { background: var(--card); border-radius: 14px; padding: 20px; text-align: center; cursor: pointer; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: all 0.2s; }
+    .quick-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+    .quick-icon { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 12px; }
+    .quick-icon.blue   { background: #eff6ff; }
+    .quick-icon.purple { background: #f5f3ff; }
+    .quick-icon.green  { background: #f0fdf4; }
+    .quick-icon.orange { background: #fffbeb; }
+    .quick-label { font-size: 13px; font-weight: 500; }
+    .quick-label.blue   { color: var(--blue); }
+    .quick-label.purple { color: var(--purple); }
+    .quick-label.green  { color: var(--green); }
+    .quick-label.orange { color: var(--orange); }
+
+    /* CARD */
+    .card { background: var(--card); border-radius: 14px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .card-body { padding: 20px; }
+
+    /* SECTION PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* FORM */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .form-group input,
+    .form-group select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: var(--font); font-size: 13.5px; outline: none; transition: border-color 0.15s; }
+    .form-group input:focus,
+    .form-group select:focus { border-color: var(--purple); }
+
+    /* BUTTONS */
+    .btn { padding: 10px 20px; border-radius: 8px; font-family: var(--font); font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-purple:hover { background: #5b21b6; }
+    .btn-green  { background: var(--green); color: #fff; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-edit    { background: #eff6ff; border: 1px solid #bfdbfe; color: var(--blue); padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: var(--font); font-weight: 500; }
+    .btn-deact   { background: #fff1f1; border: 1px solid #fecaca; color: var(--danger); padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: var(--font); font-weight: 500; }
+    .btn-act     { background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--green); padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: var(--font); font-weight: 500; }
+    .btn-approve { background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--green); padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: var(--font); font-weight: 500; }
+    .btn-reject  { background: #fff1f1; border: 1px solid #fecaca; color: var(--danger); padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: var(--font); font-weight: 500; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); border-bottom: 2px solid var(--border); font-weight: 600; }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,63,197,0.02); }
+
+    /* TRANSACTION ITEM */
+    .txn-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .txn-item:last-child { border-bottom: none; }
+    .txn-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: #fff; flex-shrink: 0; }
+    .txn-info { flex: 1; }
+    .txn-name { font-size: 14px; font-weight: 500; color: var(--text); }
+    .txn-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .txn-right { text-align: right; }
+    .txn-amount { font-size: 14px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+
+    /* BADGES */
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-success  { background: #f0fdf4; color: var(--green); }
+    .badge-pending  { background: #fffbeb; color: var(--orange); }
+    .badge-failed   { background: #fff1f1; color: var(--danger); }
+    .badge-active   { background: #f0fdf4; color: var(--green); }
+    .badge-inactive { background: #fff1f1; color: var(--danger); }
+    .badge-approved { background: #f0fdf4; color: var(--green); }
+    .badge-rejected { background: #fff1f1; color: var(--danger); }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; font-size: 13.5px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); transform: translateY(80px); opacity: 0; transition: all 0.3s ease; z-index: 1000; max-width: 320px; color: var(--text); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 999; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: #fff; border-radius: 16px; padding: 28px; width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--text); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    .empty   { text-align: center; padding: 40px; color: var(--muted); font-size: 13.5px; }
+    .loading { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+    .mono    { font-family: var(--mono); font-size: 12px; }
+    .mt14    { margin-top: 14px; }
+    .flex-gap { display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div>Shadval Pay</div>
+    <div class="logo-sub">Super Admin Panel</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showPage('overview', this)">
+      <span class="nav-icon">🏠</span> Overview
+    </div>
+    <div class="nav-item" onclick="showPage('admins', this)">
+      <span class="nav-icon">👥</span> Manage Admins
+    </div>
+    <div class="nav-item" onclick="showPage('walletloads', this)">
+      <span class="nav-icon">💳</span> Wallet Approval
+    </div>
+    <div class="nav-item" onclick="showPage('commission', this)">
+      <span class="nav-icon">%</span> Commission Settings
+    </div>
+    <div class="nav-item" onclick="showPage('transactions', this)">
+      <span class="nav-icon">📋</span> All Transactions
+    </div>
+    <div class="nav-item" onclick="showPage('reports', this)">
+      <span class="nav-icon">📊</span> Reports
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">Sign out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ══ OVERVIEW PAGE ══ -->
+  <div class="page active" id="page-overview">
+
+    <!-- PURPLE HERO -->
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-greeting">Shadval Pay</div>
+          <div class="hero-name">Super Admin 👑</div>
+        </div>
+        <div class="hero-actions">
+          <button class="hero-btn" onclick="showPage('walletloads', null)">🔔</button>
+          <button class="hero-btn" onclick="showPage('commission', null)">%</button>
+          <button class="hero-btn" onclick="logout()">↪</button>
+        </div>
+      </div>
+      <div class="commission-card">
+        <div>
+          <div class="commission-label">Total Commission Earned</div>
+          <div class="commission-amount" id="heroCommission">₹ —</div>
+        </div>
+        <div class="commission-badge" id="heroCommRate">— Commission</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- PLATFORM OVERVIEW -->
+      <div class="section-title">Platform Overview</div>
+      <div class="overview-grid">
+        <div class="overview-card">
+          <div class="ov-top">
+            <div class="ov-icon blue">🏪</div>
+            <span class="ov-badge blue">Active</span>
+          </div>
+          <div class="ov-value" id="ovAdmins">—</div>
+          <div class="ov-label">Total Admins</div>
+        </div>
+        <div class="overview-card">
+          <div class="ov-top">
+            <div class="ov-icon green">👤</div>
+            <span class="ov-badge green">Active</span>
+          </div>
+          <div class="ov-value" id="ovUsers">—</div>
+          <div class="ov-label">Total Users</div>
+        </div>
+        <div class="overview-card">
+          <div class="ov-top">
+            <div class="ov-icon purple">↔</div>
+            <span class="ov-badge purple">This Month</span>
+          </div>
+          <div class="ov-value" id="ovTxns">—</div>
+          <div class="ov-label">Total Transactions</div>
+        </div>
+        <div class="overview-card">
+          <div class="ov-top">
+            <div class="ov-icon orange">🏦</div>
+            <span class="ov-badge orange">This Month</span>
+          </div>
+          <div class="ov-value" id="ovVolume">—</div>
+          <div class="ov-label">Total Volume</div>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="section-title">Quick Actions</div>
+      <div class="quick-grid">
+        <div class="quick-card" onclick="showPage('admins', null)">
+          <div class="quick-icon blue">👥</div>
+          <div class="quick-label blue">Manage Admins</div>
+        </div>
+        <div class="quick-card" onclick="showPage('commission', null)">
+          <div class="quick-icon purple">%</div>
+          <div class="quick-label purple">Commission Settings</div>
+        </div>
+        <div class="quick-card" onclick="showPage('reports', null)">
+          <div class="quick-icon green">📊</div>
+          <div class="quick-label green">All Reports</div>
+        </div>
+        <div class="quick-card" onclick="showPage('walletloads', null)">
+          <div class="quick-icon orange">💳</div>
+          <div class="quick-label orange">Wallet Approval</div>
+        </div>
+      </div>
+
+      <!-- RECENT TRANSACTIONS -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Transactions</div>
+          <button class="btn btn-sm btn-purple" onclick="showPage('transactions', null)">View All</button>
+        </div>
+        <div class="card-body" id="recentTxns">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ ADMINS PAGE ══ -->
+  <div class="page" id="page-admins">
+    <div class="hero" style="padding-bottom:32px">
+      <div class="hero-top" style="margin-bottom:0">
+        <div>
+          <div class="hero-greeting">Super Admin</div>
+          <div class="hero-name">Manage Admins</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" style="margin-top:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Create New Admin</div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><label>First Name</label><input id="a_first" type="text" placeholder="Ravi"/></div>
+            <div class="form-group"><label>Last Name</label><input id="a_last" type="text" placeholder="Kumar"/></div>
+            <div class="form-group"><label>Email</label><input id="a_email" type="email" placeholder="ravi@example.com"/></div>
+            <div class="form-group"><label>Mobile</label><input id="a_mobile" type="text" placeholder="9876543210"/></div>
+            <div class="form-group"><label>Password</label><input id="a_password" type="password" placeholder="Min 6 characters"/></div>
+          </div>
+          <br/>
+          <button class="btn btn-purple" onclick="createAdmin()">Create Admin</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Admins</div>
+          <button class="btn btn-sm btn-purple" onclick="loadAdmins()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+              <tbody id="adminList"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WALLET APPROVAL PAGE ══ -->
+  <div class="page" id="page-walletloads">
+    <div class="hero" style="padding-bottom:32px">
+      <div class="hero-top" style="margin-bottom:0">
+        <div>
+          <div class="hero-greeting">Super Admin</div>
+          <div class="hero-name">Wallet Approval</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" style="margin-top:16px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Wallet Load Requests</div>
+          <div class="flex-gap">
+            <select id="wlFilter" onchange="loadWalletRequests()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button class="btn btn-sm btn-purple" onclick="loadWalletRequests()">Refresh</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Admin</th><th>Email</th><th>Amount</th><th>Status</th><th>Requested</th><th>Action</th></tr></thead>
+              <tbody id="walletLoadList"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ COMMISSION PAGE ══ -->
+  <div class="page" id="page-commission">
+    <div class="hero" style="padding-bottom:32px">
+      <div class="hero-top" style="margin-bottom:0">
+        <div>
+          <div class="hero-greeting">Super Admin</div>
+          <div class="hero-name">Commission Settings</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" style="margin-top:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Add Commission Setting</div></div>
+        <div class="card-body">
+          <div class="form-grid-3">
+            <div class="form-group"><label>Transaction Type</label><input id="c_type" type="text" placeholder="e.g. settlement"/></div>
+            <div class="form-group"><label>Commission Type</label>
+              <select id="c_commtype">
+                <option value="percentage">Percentage (%)</option>
+                <option value="flat">Flat (₹)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Value</label><input id="c_value" type="number" placeholder="e.g. 1.5" step="0.01" min="0"/></div>
+          </div>
+          <br/>
+          <button class="btn btn-purple" onclick="addCommission()">Add Commission</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Commission Settings</div>
+          <button class="btn btn-sm btn-purple" onclick="loadCommissions()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Transaction Type</th><th>Commission Type</th><th>Value</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="commissionList"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TRANSACTIONS PAGE ══ -->
+  <div class="page" id="page-transactions">
+    <div class="hero" style="padding-bottom:32px">
+      <div class="hero-top" style="margin-bottom:0">
+        <div>
+          <div class="hero-greeting">Super Admin</div>
+          <div class="hero-name">All Transactions</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" style="margin-top:16px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Transaction History</div>
+          <button class="btn btn-sm btn-purple" onclick="loadTransactions()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Sender</th><th>Receiver</th><th>Amount</th><th>Commission</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="transactionList"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS PAGE ══ -->
+  <div class="page" id="page-reports">
+    <div class="hero" style="padding-bottom:32px">
+      <div class="hero-top" style="margin-bottom:0">
+        <div>
+          <div class="hero-greeting">Super Admin</div>
+          <div class="hero-name">Reports</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" style="margin-top:16px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Daily Report</div>
+          <div class="flex-gap">
+            <input type="date" id="reportDate" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;"/>
+            <button class="btn btn-sm btn-purple" onclick="loadDailyReport()">Load</button>
+          </div>
+        </div>
+        <div class="card-body" id="dailyReport">
+          <div class="empty">Select a date and click Load</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Monthly Report</div>
+          <div class="flex-gap">
+            <input type="number" id="reportYear" placeholder="2026" value="2026" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;width:80px"/>
+            <button class="btn btn-sm btn-purple" onclick="loadMonthlyReport()">Load</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Month</th><th>Transactions</th><th>Amount</th><th>Commission</th><th>Success</th><th>Failed</th></tr></thead>
+              <tbody id="monthlyReport"><tr><td colspan="6" class="empty">Click Load to fetch</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- EDIT COMMISSION MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">Edit Commission Setting</div>
+    <input type="hidden" id="edit_id"/>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Commission Type</label>
+      <select id="edit_type" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13.5px;outline:none;width:100%">
+        <option value="percentage">Percentage (%)</option>
+        <option value="flat">Flat (₹)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Commission Value</label>
+      <input id="edit_value" type="number" step="0.01" min="0" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13.5px;outline:none;width:100%"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" style="background:#f3f4f6;color:var(--text);border:none" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-sm btn-purple" onclick="saveCommission()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const BASE_SA = '/api/superadmin';
+  const BASE_AM = '/api/admin-management';
+  const token   = localStorage.getItem('token');
+  const user    = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (!token || localStorage.getItem('role') !== 'super_admin') {
+    alert('Access Denied!');
+    window.location.href = '/login';
+  }
+
+  // ── TOAST ──
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = (type === 'success' ? '✓  ' : '✗  ') + msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── API ──
+  async function api(path, method = 'GET', body = null) {
+    const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res  = await fetch(path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  }
+
+  // ── NAVIGATION ──
+  function showPage(name, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+    else {
+      document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + name + "'")) n.classList.add('active');
+      });
+    }
+    if (name === 'overview')     loadOverview();
+    if (name === 'admins')       loadAdmins();
+    if (name === 'walletloads')  loadWalletRequests();
+    if (name === 'commission')   loadCommissions();
+    if (name === 'transactions') loadTransactions();
+  }
+
+  // ── COLORS for avatars ──
+  const colors = ['#6c3fc5','#2563eb','#059669','#d97706','#dc2626','#0891b2'];
+  function avatarColor(name) { return colors[name.charCodeAt(0) % colors.length]; }
+
+  // ── OVERVIEW ──
+  async function loadOverview() {
+    try {
+      const data = await api(BASE_SA + '/overview-stats');
+      const d    = data.data;
+      document.getElementById('ovAdmins').textContent  = d.total_admins       || 0;
+      document.getElementById('ovUsers').textContent   = d.total_users        || 0;
+      document.getElementById('ovTxns').textContent    = d.total_transactions || 0;
+      document.getElementById('ovVolume').textContent  = '₹' + parseFloat(d.total_amount || 0).toLocaleString('en-IN');
+      document.getElementById('heroCommission').textContent = '₹ ' + parseFloat(d.total_commission || 0).toLocaleString('en-IN');
+    } catch(e) { console.log('stats error', e); }
+
+    try {
+      const comm = await api(BASE_AM + '/commission-settings');
+      const settlement = (comm.data || []).find(c => c.transaction_type === 'settlement');
+      if (settlement) {
+        document.getElementById('heroCommRate').textContent =
+          settlement.commission_value + '% Commission';
+      }
+    } catch(e) {}
+
+    try {
+      const data  = await api(BASE_SA + '/transactions');
+      const rows  = (data.data || []).slice(0, 5);
+      const el    = document.getElementById('recentTxns');
+      if (!rows.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; }
+      el.innerHTML = rows.map(t => {
+        const name  = t.sender_name || 'Unknown';
+        const badge = t.status === 'success' ? 'badge-success' : t.status === 'pending' ? 'badge-pending' : 'badge-failed';
+        return `<div class="txn-item">
+          <div class="txn-avatar" style="background:${avatarColor(name)}">${name[0].toUpperCase()}</div>
+          <div class="txn-info">
+            <div class="txn-name">${name}</div>
+            <div class="txn-date">${new Date(t.created_at).toLocaleString('en-IN')}</div>
+          </div>
+          <div class="txn-right">
+            <div class="txn-amount">₹ ${parseFloat(t.amount).toLocaleString('en-IN')}</div>
+            <span class="badge ${badge}" style="margin-top:4px;display:inline-block">${t.status.toUpperCase()}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      document.getElementById('recentTxns').innerHTML = '<div class="empty">No transactions found</div>';
+    }
+  }
+
+  // ── ADMINS ──
+  async function loadAdmins() {
+    const tbody = document.getElementById('adminList');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api(BASE_SA + '/admins');
+      const rows = data.data || [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No admins found</td></tr>'; return; }
+      tbody.innerHTML = rows.map((a, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td><strong>${a.first_name} ${a.last_name}</strong></td>
+          <td style="color:var(--muted)">${a.email}</td>
+          <td class="mono">${a.mobile || '—'}</td>
+          <td><span class="badge ${a.is_active ? 'badge-active' : 'badge-inactive'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td style="color:var(--muted);font-size:12px">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
+          <td>${a.is_active
+            ? `<button class="btn-deact" onclick="deactivateAdmin(${a.id})">Deactivate</button>`
+            : `<button class="btn-act"   onclick="activateAdmin(${a.id})">Activate</button>`
+          }</td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Error loading</td></tr>'; }
+  }
+
+  async function createAdmin() {
+    const first_name = document.getElementById('a_first').value.trim();
+    const last_name  = document.getElementById('a_last').value.trim();
+    const email      = document.getElementById('a_email').value.trim();
+    const mobile     = document.getElementById('a_mobile').value.trim();
+    const password   = document.getElementById('a_password').value.trim();
+    if (!first_name || !last_name || !email || !password) { showToast('All fields required', 'error'); return; }
+    try {
+      await api(BASE_SA + '/admins/create', 'POST', { first_name, last_name, email, mobile, password });
+      showToast('Admin created successfully ✅');
+      ['a_first','a_last','a_email','a_mobile','a_password'].forEach(id => document.getElementById(id).value = '');
+      loadAdmins();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function activateAdmin(id) {
+    try { await api(BASE_SA + '/admins/activate/' + id, 'PUT'); showToast('Admin activated ✅'); loadAdmins(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function deactivateAdmin(id) {
+    try { await api(BASE_SA + '/admins/deactivate/' + id, 'PUT'); showToast('Admin deactivated'); loadAdmins(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  // ── WALLET LOADS ──
+  async function loadWalletRequests() {
+    const tbody  = document.getElementById('walletLoadList');
+    const status = document.getElementById('wlFilter').value;
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+    try {
+      const url  = BASE_SA + '/wallet-load-requests' + (status ? '?status=' + status : '');
+      const data = await api(url);
+      const rows = data.data || [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No requests found</td></tr>'; return; }
+      tbody.innerHTML = rows.map((r, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td><strong>${r.first_name} ${r.last_name}</strong></td>
+          <td style="color:var(--muted)">${r.email}</td>
+          <td class="mono" style="font-weight:600">₹${parseFloat(r.amount).toLocaleString('en-IN')}</td>
+          <td><span class="badge badge-${r.status}">${r.status}</span></td>
+          <td style="color:var(--muted);font-size:12px">${new Date(r.requested_at).toLocaleDateString('en-IN')}</td>
+          <td>${r.status === 'pending' ? `
+            <div class="flex-gap">
+              <button class="btn-approve" onclick="approveLoad(${r.id})">Approve</button>
+              <button class="btn-reject"  onclick="rejectLoad(${r.id})">Reject</button>
+            </div>` : `<span style="color:var(--muted);font-size:12px">${r.status}</span>`
+          }</td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Error loading</td></tr>'; }
+  }
+
+  async function approveLoad(id) {
+    try { await api(BASE_SA + '/wallet-load-requests/approve/' + id, 'PUT'); showToast('Wallet load approved ✅'); loadWalletRequests(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function rejectLoad(id) {
+    try { await api(BASE_SA + '/wallet-load-requests/reject/' + id, 'PUT', { remark: 'Rejected by super admin' }); showToast('Rejected'); loadWalletRequests(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  // ── COMMISSION ──
+  async function loadCommissions() {
+    const tbody = document.getElementById('commissionList');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api(BASE_AM + '/commission-settings');
+      const rows = data.data || [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No settings found</td></tr>'; return; }
+      tbody.innerHTML = rows.map((c, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td><span style="font-family:var(--mono);font-size:12px;color:var(--purple);font-weight:600">${c.transaction_type}</span></td>
+          <td>${c.commission_type}</td>
+          <td style="font-weight:600">${c.commission_type === 'percentage' ? c.commission_value + '%' : '₹' + parseFloat(c.commission_value).toLocaleString('en-IN')}</td>
+          <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            <div class="flex-gap">
+              <button class="btn-edit" onclick="openEdit(${c.id},'${c.commission_type}',${c.commission_value})">Edit</button>
+              ${c.is_active
+                ? `<button class="btn-deact" onclick="deactivateCommission(${c.id})">Deactivate</button>`
+                : `<button class="btn-act"   onclick="activateCommission(${c.id})">Activate</button>`
+              }
+            </div>
+          </td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Error loading</td></tr>'; }
+  }
+
+  async function addCommission() {
+    const transaction_type = document.getElementById('c_type').value.trim();
+    const commission_type  = document.getElementById('c_commtype').value;
+    const commission_value = parseFloat(document.getElementById('c_value').value);
+    if (!transaction_type || isNaN(commission_value)) { showToast('All fields required', 'error'); return; }
+    try {
+      await api(BASE_AM + '/commission-settings/add', 'POST', { transaction_type, commission_type, commission_value });
+      showToast('Commission added ✅');
+      document.getElementById('c_type').value  = '';
+      document.getElementById('c_value').value = '';
+      loadCommissions();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  function openEdit(id, type, value) {
+    document.getElementById('edit_id').value    = id;
+    document.getElementById('edit_type').value  = type;
+    document.getElementById('edit_value').value = value;
+    document.getElementById('editModal').classList.add('show');
+  }
+
+  function closeModal() { document.getElementById('editModal').classList.remove('show'); }
+
+  async function saveCommission() {
+    const id               = document.getElementById('edit_id').value;
+    const commission_type  = document.getElementById('edit_type').value;
+    const commission_value = parseFloat(document.getElementById('edit_value').value);
+    try {
+      await api(BASE_AM + '/commission-settings/update/' + id, 'PUT', { commission_type, commission_value });
+      showToast('Commission updated ✅');
+      closeModal();
+      loadCommissions();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function activateCommission(id) {
+    try { await api(BASE_AM + '/commission-settings/activate/' + id, 'PUT'); showToast('Activated ✅'); loadCommissions(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function deactivateCommission(id) {
+    try { await api(BASE_AM + '/commission-settings/deactivate/' + id, 'PUT'); showToast('Deactivated'); loadCommissions(); }
+    catch(e) { showToast(e.message, 'error'); }
+  }
+
+  // ── TRANSACTIONS ──
+  async function loadTransactions() {
+    const tbody = document.getElementById('transactionList');
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api(BASE_SA + '/transactions');
+      const rows = data.data || [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No transactions found</td></tr>'; return; }
+      tbody.innerHTML = rows.map((t, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td>${t.sender_name}<br/><span style="color:var(--muted);font-size:11px">${t.sender_role}</span></td>
+          <td>${t.receiver_name}<br/><span style="color:var(--muted);font-size:11px">${t.receiver_role}</span></td>
+          <td class="mono" style="font-weight:600">₹${parseFloat(t.amount).toLocaleString('en-IN')}</td>
+          <td class="mono" style="color:var(--orange)">₹${parseFloat(t.commission||0).toLocaleString('en-IN')}</td>
+          <td><span style="font-size:11px;color:var(--muted)">${t.type || '—'}</span></td>
+          <td><span class="badge badge-${t.status}">${t.status}</span></td>
+          <td style="color:var(--muted);font-size:12px">${new Date(t.created_at).toLocaleDateString('en-IN')}</td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No transactions found</td></tr>'; }
+  }
+
+  // ── REPORTS ──
+  async function loadDailyReport() {
+    const date = document.getElementById('reportDate').value;
+    const el   = document.getElementById('dailyReport');
+    el.innerHTML = '<div class="loading">Loading...</div>';
+    try {
+      const data = await api(BASE_SA + '/reports/daily' + (date ? '?date=' + date : ''));
+      const d    = data.data;
+      el.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div class="overview-card"><div class="ov-label">Total Transactions</div><div class="ov-value" style="font-size:20px">${d.total_transactions}</div></div>
+          <div class="overview-card"><div class="ov-label">Total Amount</div><div class="ov-value" style="font-size:20px;color:var(--green)">₹${parseFloat(d.total_amount).toLocaleString('en-IN')}</div></div>
+          <div class="overview-card"><div class="ov-label">Commission</div><div class="ov-value" style="font-size:20px;color:var(--orange)">₹${parseFloat(d.total_commission).toLocaleString('en-IN')}</div></div>
+          <div class="overview-card"><div class="ov-label">Success / Failed</div><div class="ov-value" style="font-size:20px">${d.success_count} / ${d.failed_count}</div></div>
+        </div>`;
+    } catch(e) { el.innerHTML = '<div class="empty">Error loading report</div>'; }
+  }
+
+  async function loadMonthlyReport() {
+    const year  = document.getElementById('reportYear').value;
+    const tbody = document.getElementById('monthlyReport');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api(BASE_SA + '/reports/monthly?year=' + year);
+      const rows = data.data || [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No data</td></tr>'; return; }
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td style="font-weight:500">${r.month_name}</td>
+          <td class="mono">${r.total_transactions}</td>
+          <td class="mono" style="color:var(--green)">₹${parseFloat(r.total_amount).toLocaleString('en-IN')}</td>
+          <td class="mono" style="color:var(--orange)">₹${parseFloat(r.total_commission).toLocaleString('en-IN')}</td>
+          <td><span class="badge badge-success">${r.success_count}</span></td>
+          <td><span class="badge badge-failed">${r.failed_count}</span></td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Error loading</td></tr>'; }
+  }
+
+  // ── LOGOUT ──
+  function logout() { localStorage.clear(); window.location.href = '/login'; }
+
+  // ── INIT ──
+  loadOverview();
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+html<!DOCTYPE html>
+<html>
+<head>
+  <title>Register — ShadVal Pay</title>
+</head>
+<body>
+
+<h2>Register</h2>
+
+<input type="text" id="first_name" placeholder="First Name"><br><br>
+<input type="text" id="last_name" placeholder="Last Name"><br><br>
+<input type="email" id="email" placeholder="Email (optional)"><br><br>
+<input type="text" id="mobile" placeholder="Mobile (optional)"><br><br>
+<input type="password" id="password" placeholder="Password"><br><br>
+
+<button onclick="register()">Send OTP</button>
+<p id="msg"></p>
+<p>Already have account? <a href="login.html">Login</a></p>
+
+<script>
+async function register() {
+  const first_name = document.getElementById("first_name").value.trim();
+  const last_name  = document.getElementById("last_name").value.trim();
+  const email      = document.getElementById("email").value.trim();
+  const mobile     = document.getElementById("mobile").value.trim();
+  const password   = document.getElementById("password").value.trim();
+
+  if (!first_name || !last_name || !password) {
+    alert("First name, last name and password required");
+    return;
+  }
+  if (!email && !mobile) {
+    alert("Enter email or mobile");
+    return;
+  }
+
+  const body = { first_name, last_name, password };
+  if (email)  body.email  = email;
+  if (mobile) body.mobile = mobile;
+
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json();
+
+  if (response.ok) {
+    // ✅ Save email/mobile for OTP page
+    localStorage.setItem("emailOrMobile", email || mobile);
+    alert("OTP Sent ✅ Check your terminal for OTP");
+    window.location.href = "otp.html";
+  } else {
+    alert("Error: " + data.message);
+  }
+}
+</script>
+</body>
+</html>

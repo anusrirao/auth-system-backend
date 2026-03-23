@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — Shadval Pay</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #181c27;
+      --card:     #1e2334;
+      --border:   #2a3045;
+      --accent:   #4f8ef7;
+      --accent2:  #2ecc8f;
+      --danger:   #e05555;
+      --warning:  #f0a500;
+      --text:     #e8eaf2;
+      --muted:    #7a849e;
+      --font:     'DM Sans', sans-serif;
+      --mono:     'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+    .logo {
+      padding: 0 20px 28px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo span { color: var(--text); }
+    .nav { padding: 16px 0; flex: 1; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13.5px;
+      color: var(--muted);
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(79,142,247,0.06); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,142,247,0.08); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+    .logout-btn {
+      width: 100%;
+      padding: 9px;
+      background: rgba(224,85,85,0.1);
+      border: 1px solid rgba(224,85,85,0.25);
+      border-radius: 8px;
+      color: var(--danger);
+      font-family: var(--font);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .logout-btn:hover { background: rgba(224,85,85,0.2); }
+
+    /* MAIN */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; min-height: 100vh; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .page-title { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; }
+    .page-title span { color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 8px; }
+    .admin-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .admin-avatar {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; color: #fff;
+    }
+
+    /* SECTIONS */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* WALLET CARD */
+    .wallet-card {
+      background: linear-gradient(135deg, #1a2a4a 0%, #1e2334 100%);
+      border: 1px solid #2a4070;
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .wallet-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .wallet-amount { font-size: 32px; font-weight: 600; font-family: var(--mono); color: var(--accent2); }
+    .wallet-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .stat-value { font-size: 22px; font-weight: 600; font-family: var(--mono); }
+    .stat-value.green { color: var(--accent2); }
+    .stat-value.blue  { color: var(--accent); }
+    .stat-value.warn  { color: var(--warning); }
+
+    /* CARD */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 14px; font-weight: 500; }
+    .card-body { padding: 20px; }
+
+    /* FORM */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 12px; color: var(--muted); }
+    .form-group input,
+    .form-group select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: var(--accent); }
+
+    /* BUTTONS */
+    .btn { padding: 10px 20px; border-radius: 8px; font-family: var(--font); font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3a7ae8; }
+    .btn-success { background: var(--accent2); color: #fff; }
+    .btn-success:hover { background: #27b87e; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-verify { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; font-family: var(--font); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: 12px 14px; border-bottom: 1px solid rgba(42,48,69,0.5); color: var(--text); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(79,142,247,0.03); }
+
+    /* BADGES */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .badge-success    { background: rgba(46,204,143,0.12); color: var(--accent2); }
+    .badge-pending    { background: rgba(240,165,0,0.12);  color: var(--warning); }
+    .badge-failed     { background: rgba(224,85,85,0.12);  color: var(--danger); }
+    .badge-verified   { background: rgba(46,204,143,0.12); color: var(--accent2); }
+    .badge-unverified { background: rgba(240,165,0,0.12);  color: var(--warning); }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 20px; font-size: 13.5px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.3s ease; z-index: 1000; max-width: 320px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 3px solid var(--accent2); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+
+    .empty   { text-align: center; padding: 40px; color: var(--muted); font-size: 13.5px; }
+    .loading { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+    .mono    { font-family: var(--mono); font-size: 12px; }
+    .divider { margin: 16px 0; border: none; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">Shadval <span>Pay</span></div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showSection('overview')">
+      <span class="nav-icon">◈</span> Overview
+    </div>
+    <div class="nav-item" onclick="showSection('beneficiary')">
+      <span class="nav-icon">◎</span> Beneficiaries
+    </div>
+    <div class="nav-item" onclick="showSection('settlement')">
+      <span class="nav-icon">⟳</span> Settlement
+    </div>
+    <div class="nav-item" onclick="showSection('history')">
+      <span class="nav-icon">≡</span> History
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">Sign out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Overview <span>Admin Dashboard</span></div>
+    <div class="admin-badge">
+      <div class="admin-avatar" id="avatarInitial">A</div>
+      <span id="adminName">Admin</span>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="section-overview">
+    <div class="wallet-card">
+      <div>
+        <div class="wallet-label">Wallet Balance</div>
+        <div class="wallet-amount" id="walletBalance">₹ —</div>
+        <div class="wallet-sub">Available for settlement</div>
+      </div>
+      <button class="btn btn-primary" onclick="showSection('settlement')">Make Settlement →</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Settled</div>
+        <div class="stat-value green" id="statSettled">₹ 0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Settlements</div>
+        <div class="stat-value blue" id="statCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Commission Paid</div>
+        <div class="stat-value warn" id="statCommission">₹ 0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Settlements</div>
+        <button class="btn btn-sm btn-primary" onclick="showSection('history')">View All</button>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Beneficiary</th>
+                <th>Amount</th>
+                <th>UTR</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="recentSettlements">
+              <tr><td colspan="5" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BENEFICIARY -->
+  <div class="section" id="section-beneficiary">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Add Bank Account</div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Account Holder Name</label>
+            <input id="b_name" type="text" placeholder="e.g. Ravi Kumar"/>
+          </div>
+          <div class="form-group">
+            <label>Bank Name</label>
+            <input id="b_bank" type="text" placeholder="e.g. State Bank of India"/>
+          </div>
+          <div class="form-group">
+            <label>Account Number</label>
+            <input id="b_account" type="text" placeholder="e.g. 1234567890"/>
+          </div>
+          <div class="form-group">
+            <label>IFSC Code</label>
+            <input id="b_ifsc" type="text" placeholder="e.g. SBIN0001234"/>
+          </div>
+        </div>
+        <br/>
+        <button class="btn btn-primary" onclick="addBeneficiary()">Add Beneficiary</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">My Bank Accounts</div>
+        <button class="btn btn-sm btn-primary" onclick="loadBeneficiaries()">Refresh</button>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Account Holder</th>
+                <th>Account Number</th>
+                <th>IFSC</th>
+                <th>Bank</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="beneficiaryList">
+              <tr><td colspan="7" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTLEMENT -->
+  <div class="section" id="section-settlement">
+    <div class="wallet-card">
+      <div>
+        <div class="wallet-label">Available Balance</div>
+        <div class="wallet-amount" id="settleBalance">₹ —</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Initiate Settlement</div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Select Beneficiary (verified accounts only)</label>
+            <select id="s_beneficiary">
+              <option value="">— Select beneficiary —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount (₹)</label>
+            <input id="s_amount" type="number" placeholder="e.g. 5000" min="1"/>
+          </div>
+          <div class="form-group">
+            <label>Remarks (optional)</label>
+            <input id="s_remarks" type="text" placeholder="e.g. Monthly payout"/>
+          </div>
+        </div>
+        <br/>
+        <button class="btn btn-success" id="settleBtn" onclick="initiateSettlement()">Send Money →</button>
+      </div>
+    </div>
+    <div class="card" id="settlementResult" style="display:none">
+      <div class="card-header">
+        <div class="card-title" style="color:var(--accent2)">✓ Settlement Successful</div>
+      </div>
+      <div class="card-body">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Amount Sent</div>
+            <div class="stat-value green" id="r_amount">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Commission</div>
+            <div class="stat-value warn" id="r_commission">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Deducted</div>
+            <div class="stat-value blue" id="r_total">—</div>
+          </div>
+        </div>
+        <hr class="divider"/>
+        <div style="font-size:13px;color:var(--muted)">UTR Number &nbsp;→&nbsp; <span class="mono" id="r_utr" style="color:var(--text)">—</span></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:8px">Beneficiary &nbsp;→&nbsp; <span id="r_bene" style="color:var(--text)">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section" id="section-history">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Settlement History</div>
+        <button class="btn btn-sm btn-primary" onclick="loadHistory()">Refresh</button>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Beneficiary</th>
+                <th>Account</th>
+                <th>Amount</th>
+                <th>Commission</th>
+                <th>Total</th>
+                <th>UTR</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="historyList">
+              <tr><td colspan="9" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:var(--muted)" id="historySummary"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const BASE  = '/api/admin-dashboard';
+  const token = localStorage.getItem('token');
+  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (!token || localStorage.getItem('role') !== 'admin') {
+    alert('Access Denied!');
+    window.location.href = '/login';
+  }
+
+  document.getElementById('adminName').textContent =
+    (user.first_name || 'Admin') + ' ' + (user.last_name || '');
+  document.getElementById('avatarInitial').textContent =
+    (user.first_name || 'A')[0].toUpperCase();
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = (type === 'success' ? '✓  ' : '✗  ') + msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  async function api(path, method = 'GET', body = null) {
+    const opts = {
+      method,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res  = await fetch(BASE + path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  }
+
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.textContent.trim().toLowerCase().includes(name === 'overview' ? 'overview' :
+          name === 'beneficiary' ? 'beneficiar' :
+          name === 'settlement' ? 'settlement' : 'history')) {
+        n.classList.add('active');
+      }
+    });
+    const titles = {
+      overview:    'Overview',
+      beneficiary: 'Beneficiaries',
+      settlement:  'Make Settlement',
+      history:     'History'
+    };
+    document.getElementById('pageTitle').innerHTML =
+      titles[name] + ' <span>Admin Dashboard</span>';
+
+    if (name === 'overview')    loadOverview();
+    if (name === 'beneficiary') loadBeneficiaries();
+    if (name === 'settlement')  { loadBeneficiaryDropdown(); loadWalletBalance('settleBalance'); }
+    if (name === 'history')     loadHistory();
+  }
+
+  async function loadWalletBalance(elId = 'walletBalance') {
+    try {
+      const data = await api('/wallet/balance');
+      const bal  = data.data?.current_balance ?? data.current_balance ?? 0;
+      document.getElementById(elId).textContent =
+        '₹ ' + parseFloat(bal).toLocaleString('en-IN');
+    } catch(e) {
+      document.getElementById(elId).textContent = '₹ —';
+    }
+  }
+
+  async function loadOverview() {
+    loadWalletBalance('walletBalance');
+    try {
+      const data   = await api('/settlement/history');
+      const rows   = data.data || [];
+      const summary = data.summary || {};
+      document.getElementById('statCount').textContent      = rows.length;
+      document.getElementById('statSettled').textContent    = '₹ ' + parseFloat(summary.total_amount     || 0).toLocaleString('en-IN');
+      document.getElementById('statCommission').textContent = '₹ ' + parseFloat(summary.total_commission || 0).toLocaleString('en-IN');
+      const tbody  = document.getElementById('recentSettlements');
+      const recent = rows.slice(0, 5);
+      if (!recent.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No settlements yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = recent.map(s => `
+        <tr>
+          <td>${s.account_holder_name}</td>
+          <td class="mono">₹${parseFloat(s.amount).toLocaleString('en-IN')}</td>
+          <td class="mono" style="font-size:11px">${s.utr_number || '—'}</td>
+          <td><span class="badge badge-${s.status}">${s.status}</span></td>
+          <td style="color:var(--muted);font-size:12px">${new Date(s.created_at).toLocaleDateString('en-IN')}</td>
+        </tr>`).join('');
+    } catch(e) {
+      document.getElementById('recentSettlements').innerHTML =
+        '<tr><td colspan="5" class="empty">Could not load data</td></tr>';
+    }
+  }
+
+  async function loadBeneficiaries() {
+    const tbody = document.getElementById('beneficiaryList');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api('/beneficiary/list');
+      const rows = data.data || [];
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">No beneficiaries added yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(b => `
+        <tr>
+          <td style="color:var(--muted)">${b.id}</td>
+          <td>${b.account_holder_name}</td>
+          <td class="mono">${b.account_number}</td>
+          <td class="mono">${b.ifsc_code}</td>
+          <td>${b.bank_name || '—'}</td>
+          <td><span class="badge ${b.is_verified ? 'badge-verified' : 'badge-unverified'}">
+            ${b.is_verified ? 'Verified' : 'Unverified'}
+          </span></td>
+          <td>${!b.is_verified
+            ? `<button class="btn-verify" onclick="verifyBeneficiary(${b.id})">Verify</button>`
+            : `<span style="color:var(--muted);font-size:12px">✓ Done</span>`
+          }</td>
+        </tr>`).join('');
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">Error loading beneficiaries</td></tr>';
+    }
+  }
+
+  async function addBeneficiary() {
+    const name    = document.getElementById('b_name').value.trim();
+    const bank    = document.getElementById('b_bank').value.trim();
+    const account = document.getElementById('b_account').value.trim();
+    const ifsc    = document.getElementById('b_ifsc').value.trim();
+    if (!name || !account || !ifsc) {
+      showToast('Name, account number and IFSC are required', 'error'); return;
+    }
+    try {
+      await api('/beneficiary/add', 'POST', {
+        account_holder_name: name,
+        account_number: account,
+        ifsc_code: ifsc,
+        bank_name: bank
+      });
+      showToast('Beneficiary added successfully');
+      document.getElementById('b_name').value    = '';
+      document.getElementById('b_bank').value    = '';
+      document.getElementById('b_account').value = '';
+      document.getElementById('b_ifsc').value    = '';
+      loadBeneficiaries();
+    } catch(e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  async function verifyBeneficiary(id) {
+    try {
+      await api('/beneficiary/verify/' + id, 'PUT');
+      showToast('Beneficiary verified successfully');
+      loadBeneficiaries();
+    } catch(e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  async function loadBeneficiaryDropdown() {
+    const sel = document.getElementById('s_beneficiary');
+    sel.innerHTML = '<option value="">— Loading... —</option>';
+    try {
+      const data     = await api('/beneficiary/list');
+      const verified = (data.data || []).filter(b => b.is_verified);
+      if (!verified.length) {
+        sel.innerHTML = '<option value="">— No verified beneficiaries. Add and verify first. —</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">— Select beneficiary —</option>' +
+        verified.map(b =>
+          `<option value="${b.id}">${b.account_holder_name} — ${b.account_number} (${b.bank_name || b.ifsc_code})</option>`
+        ).join('');
+    } catch(e) {
+      sel.innerHTML = '<option value="">— Error loading —</option>';
+    }
+  }
+
+  async function initiateSettlement() {
+    const beneficiary_id = document.getElementById('s_beneficiary').value;
+    const amount         = document.getElementById('s_amount').value;
+    const remarks        = document.getElementById('s_remarks').value;
+    if (!beneficiary_id) { showToast('Please select a beneficiary', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+    const btn = document.getElementById('settleBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+      const data = await api('/settlement/initiate', 'POST', {
+        beneficiary_id: parseInt(beneficiary_id),
+        amount:         parseFloat(amount),
+        remarks:        remarks || undefined
+      });
+      document.getElementById('r_amount').textContent     = '₹ ' + parseFloat(data.amount).toLocaleString('en-IN');
+      document.getElementById('r_commission').textContent = '₹ ' + parseFloat(data.commission).toLocaleString('en-IN');
+      document.getElementById('r_total').textContent      = '₹ ' + parseFloat(data.total_deducted).toLocaleString('en-IN');
+      document.getElementById('r_utr').textContent        = data.utr_number;
+      document.getElementById('r_bene').textContent       =
+        data.beneficiary.name + ' — ' + data.beneficiary.account_number;
+      document.getElementById('settlementResult').style.display = 'block';
+      document.getElementById('s_amount').value  = '';
+      document.getElementById('s_remarks').value = '';
+      showToast('Settlement successful! UTR: ' + data.utr_number);
+      loadWalletBalance('settleBalance');
+    } catch(e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Money →';
+    }
+  }
+
+  async function loadHistory() {
+    const tbody = document.getElementById('historyList');
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading...</td></tr>';
+    try {
+      const data = await api('/settlement/history');
+      const rows = data.data || [];
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No settlement history yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((s, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i + 1}</td>
+          <td>${s.account_holder_name}</td>
+          <td class="mono" style="font-size:11px">${s.account_number}</td>
+          <td class="mono">₹${parseFloat(s.amount).toLocaleString('en-IN')}</td>
+          <td class="mono" style="color:var(--warning)">₹${parseFloat(s.commission).toLocaleString('en-IN')}</td>
+          <td class="mono">₹${parseFloat(s.total_deducted).toLocaleString('en-IN')}</td>
+          <td class="mono" style="font-size:11px">${s.utr_number || '—'}</td>
+          <td><span class="badge badge-${s.status}">${s.status}</span></td>
+          <td style="color:var(--muted);font-size:12px">${new Date(s.created_at).toLocaleDateString('en-IN')}</td>
+        </tr>`).join('');
+      document.getElementById('historySummary').innerHTML =
+        `Total: <strong style="color:var(--text)">₹${parseFloat(data.summary?.total_amount||0).toLocaleString('en-IN')}</strong>
+         &nbsp;|&nbsp; Commission: <strong style="color:var(--warning)">₹${parseFloat(data.summary?.total_commission||0).toLocaleString('en-IN')}</strong>
+         &nbsp;|&nbsp; Records: <strong style="color:var(--text)">${rows.length}</strong>`;
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">Error loading history</td></tr>';
+    }
+  }
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/login';
+  }
+
+  loadOverview();
+</script>
+</body>
+</html>
