@@ -1,13 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/auth_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../super_admin/presentation/screens/super_admin_dashboard.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../user/presentation/screens/user_dashboard_screen.dart';
-import 'register_screen.dart';
-import'../../../../core/constants/app_session.dart';
+import '../../../../core/constants/app_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,34 +35,33 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['token'] != null) {
+      AppSession.token = result['token'];
+      AppSession.role  = result['role'] ?? 'user';
 
-  // ✅ Save to AppSession — no SharedPreferences needed
-  AppSession.token = result['token'];
-  AppSession.role  = result['role'] ?? 'user';
+      print("Token saved: ${AppSession.token}");
+      print("Role saved: ${AppSession.role}");
 
-  print("✅ Token saved: ${AppSession.token}");
-  print("✅ Role saved:  ${AppSession.role}");
+      final String role = AppSession.role;
 
-  final String role = AppSession.role;
+      if (!mounted) return;
 
-  if (!mounted) return;
-
-  if (role == 'super_admin') {
-    Navigator.pushReplacement(context,
-        MaterialPageRoute(builder: (_) => const SuperAdminDashboard()));
-  } else if (role == 'admin') {
-    Navigator.pushReplacement(context,
-        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
-  } else if (role == 'user') {
-    Navigator.pushReplacement(context,
-        MaterialPageRoute(builder: (_) => const UserDashboardScreen()));
-  } else {
-    setState(() => _errorMessage = 'Unknown role: $role');
+      if (role == 'super_admin' || role == 'superadmin') {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const SuperAdminDashboard()));
+      } else if (role == 'admin') {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+      } else if (role == 'user') {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const UserDashboardScreen()));
+      } else {
+        setState(() => _errorMessage = 'Unknown role: $role');
+      }
+    } else {
+      setState(() => _errorMessage = result['message'] ?? 'Login failed');
+    }
   }
- } else {
-  setState(() => _errorMessage = result['message'] ?? 'Login failed');
-}
-  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -196,25 +192,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account? ",
-                      style: TextStyle(color: AppColors.textGrey)),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RegisterScreen())),
-                    child: const Text("Sign Up",
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ],
               ),
             ],
           ),

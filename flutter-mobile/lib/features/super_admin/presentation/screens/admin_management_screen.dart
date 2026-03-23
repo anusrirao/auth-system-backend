@@ -21,13 +21,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAdmins(); // ✅ Load admins from API on screen open
+    _fetchAdmins();
   }
 
   // ================= FETCH ALL ADMINS =================
   Future<void> _fetchAdmins() async {
     setState(() { _isLoading = true; _errorMessage = ''; });
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -35,7 +34,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       final response = await http.get(
         Uri.parse('${AuthService.baseUrl}/admin-management/admins'),
         headers: {
-          'Content-Type':  'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
@@ -73,7 +72,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       final response = await http.put(
         Uri.parse(endpoint),
         headers: {
-          'Content-Type':  'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
@@ -84,12 +83,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isActive
-                ? "Admin deactivated ✅"
-                : "Admin activated ✅"),
+                ? "Admin deactivated successfully"
+                : "Admin activated successfully"),
             backgroundColor: AppColors.success,
           ),
         );
-        _fetchAdmins(); // ✅ Refresh list
+        _fetchAdmins();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -122,19 +121,18 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchAdmins, // ✅ Refresh button
+            onPressed: _fetchAdmins,
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          // ✅ Wait for result — if true, refresh list
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => const CreateAdminScreen()),
           );
-          if (result == true) _fetchAdmins(); // ✅ Refresh after create
+          if (result == true) _fetchAdmins();
         },
         backgroundColor: AppColors.superAdminColor,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -143,7 +141,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       ),
       body: Column(
         children: [
-          // Summary bar
+          // ── Summary Bar ───────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
             color: AppColors.superAdminColor,
@@ -167,7 +165,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
             ),
           ),
 
-          // Loading
+          // ── Loading ───────────────────────────────────
           if (_isLoading)
             const Expanded(
               child: Center(
@@ -176,7 +174,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
               ),
             )
 
-          // Error
+          // ── Error ─────────────────────────────────────
           else if (_errorMessage.isNotEmpty)
             Expanded(
               child: Center(
@@ -199,7 +197,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
               ),
             )
 
-          // Empty
+          // ── Empty ─────────────────────────────────────
           else if (_admins.isEmpty)
             const Expanded(
               child: Center(
@@ -216,16 +214,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
               ),
             )
 
-          // Admin List
+          // ── Admin List ────────────────────────────────
           else
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _admins.length,
                 itemBuilder: (context, index) {
-                  final admin    = _admins[index];
+                  final admin = _admins[index];
                   final isActive = admin['is_active'] == 1;
-                  final name     = '${admin['first_name']} ${admin['last_name']}';
+                  final name =
+                      '${admin['first_name']} ${admin['last_name']}';
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -242,11 +241,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                     ),
                     child: Column(
                       children: [
+                        // ── Admin Info ────────────────
                         Row(
                           children: [
                             CircleAvatar(
                               backgroundColor:
-                                  AppColors.superAdminColor.withOpacity(0.1),
+                                  AppColors.superAdminColor
+                                      .withOpacity(0.1),
                               radius: 24,
                               child: Text(
                                 name[0].toUpperCase(),
@@ -279,6 +280,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                                 ],
                               ),
                             ),
+                            // Status Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
@@ -286,7 +288,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                                 color: isActive
                                     ? AppColors.successLight
                                     : AppColors.errorLight,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius:
+                                    BorderRadius.circular(20),
                               ),
                               child: Text(
                                 isActive ? "Active" : "Inactive",
@@ -302,50 +305,58 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                         ),
                         const SizedBox(height: 12),
                         const Divider(height: 1),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
+
+                        // ── Action Buttons ────────────
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Toggle status
-                            TextButton.icon(
-                              onPressed: () => _toggleAdminStatus(
-                                  admin['id'], isActive),
-                              icon: Icon(
-                                isActive
-                                    ? Icons.block_outlined
-                                    : Icons.check_circle_outline,
-                                size: 16,
-                                color: isActive
-                                    ? AppColors.error
-                                    : AppColors.success,
-                              ),
-                              label: Text(
-                                isActive ? "Deactivate" : "Activate",
-                                style: TextStyle(
-                                    color: isActive
-                                        ? AppColors.error
-                                        : AppColors.success,
-                                    fontSize: 12),
+                            // Deactivate Button
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: isActive
+                                    ? () => _toggleAdminStatus(
+                                        admin['id'], isActive)
+                                    : null,
+                                icon: const Icon(
+                                    Icons.block_outlined,
+                                    size: 16,
+                                    color: AppColors.error),
+                                label: const Text("Deactivate",
+                                    style: TextStyle(
+                                        color: AppColors.error,
+                                        fontSize: 12)),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                      color: AppColors.error),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(8)),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            TextButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          "Password reset for $name")),
-                                );
-                              },
-                              icon: const Icon(
-                                  Icons.lock_reset_outlined,
-                                  size: 16,
-                                  color: AppColors.primary),
-                              label: const Text("Reset Password",
-                                  style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 12)),
+                            // Activate Button
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: !isActive
+                                    ? () => _toggleAdminStatus(
+                                        admin['id'], isActive)
+                                    : null,
+                                icon: const Icon(
+                                    Icons.check_circle_outline,
+                                    size: 16,
+                                    color: Colors.white),
+                                label: const Text("Activate",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.success,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(8)),
+                                ),
+                              ),
                             ),
                           ],
                         ),

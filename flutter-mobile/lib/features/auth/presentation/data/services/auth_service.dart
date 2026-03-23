@@ -157,4 +157,74 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('role') ?? '';
   }
+
+  // ================= GET GLOBAL COMMISSION =================
+  static Future<dynamic> getGlobalCommission() async {
+    try {
+      final token = await getToken();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin-management/commission-settings/global"),
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print("✅ Global Commission Status: ${response.statusCode}");
+      print("✅ Global Commission Response: ${response.body}");
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      print("❌ Global Commission Error: $e");
+      return {"message": "Connection failed: $e"};
+    }
+  }
+
+  // ================= UPDATE GLOBAL COMMISSION =================
+  static Future<dynamic> updateGlobalCommission(double input) async {
+    try {
+      final token = await getToken();
+      final response = await http.put(
+        Uri.parse("$baseUrl/admin-management/commission-settings/global/update"),
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "commission_type":  "percentage",
+          "commission_value": input,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      print("✅ Update Commission Status: ${response.statusCode}");
+      print("✅ Update Commission Response: ${response.body}");
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      print("❌ Update Commission Error: $e");
+      return {"message": "Connection failed: $e"};
+    }
+  }
+
+  // ================= GET COMMISSION HISTORY =================
+  static Future<dynamic> getCommissionHistory() async {
+    try {
+      final token = await getToken();
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin-management/commission-history"),
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print("✅ Commission History Status: ${response.statusCode}");
+      print("✅ Commission History Response: ${response.body}");
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      print("❌ Commission History Error: $e");
+      return {"message": "Connection failed: $e"};
+    }
+  }
 }
