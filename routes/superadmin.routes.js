@@ -18,16 +18,6 @@ router.get("/users",
 router.get("/transactions",
   verifyToken, checkRole("superadmin"), adminController.getAllTransactions);
 
-// Reports
-router.get("/reports/daily",
-  verifyToken, checkRole("superadmin"), adminController.getDailyReport);
-router.get("/reports/weekly",
-  verifyToken, checkRole("superadmin"), adminController.getWeeklyReport);
-router.get("/reports/monthly",
-  verifyToken, checkRole("superadmin"), adminController.getMonthlyReport);
-router.get("/reports/platform",
-  verifyToken, checkRole("superadmin"), adminController.getPlatformReport);
-
 // Admin Management
 router.get("/admins",
   verifyToken, checkRole("superadmin"), adminController.getAllAdmins);
@@ -40,41 +30,57 @@ router.put("/admins/activate/:id",
 router.put("/admins/deactivate/:id",
   verifyToken, checkRole("superadmin"), adminController.deactivateAdmin);
 
-// Commission Settings
-router.get("/commission-settings",
-  verifyToken, checkRole("superadmin"), adminController.getCommissionSettings);
-router.post("/commission-settings/add",
-  verifyToken, checkRole("superadmin"), adminController.addCommissionSetting);
-router.put("/commission-settings/update/:id",
-  verifyToken, checkRole("superadmin"), adminController.updateCommissionSetting);
-router.put("/commission-settings/activate/:id",
-  verifyToken, checkRole("superadmin"), adminController.activateCommission);
-router.put("/commission-settings/deactivate/:id",
-  verifyToken, checkRole("superadmin"), adminController.deactivateCommission);
+// ================= COMMISSION SETTINGS =================
 
-// Global Commission
+// ✅ FIXED: Global routes MUST come BEFORE /:id routes
+// Otherwise Express treats "global" as an :id parameter
+
 router.get("/commission-settings/global",
   verifyToken, checkRole("superadmin"), adminController.getGlobalCommission);
+
 router.put("/commission-settings/global/update",
   verifyToken, checkRole("superadmin"), adminController.updateGlobalCommission);
 
-// Commission History
+// Commission History — also moved up before any /:id routes
 router.get("/commission-history",
   verifyToken, checkRole("superadmin"), adminController.getCommissionHistory);
+
 router.get("/commission-history/summary",
   verifyToken, checkRole("superadmin"), adminController.getCommissionSummaryByType);
 
-// Notifications
+// General commission routes
+router.get("/commission-settings",
+  verifyToken, checkRole("superadmin"), adminController.getCommissionSettings);
+
+router.post("/commission-settings/add",
+  verifyToken, checkRole("superadmin"), adminController.addCommissionSetting);
+
+router.put("/commission-settings/update/:id",
+  verifyToken, checkRole("superadmin"), adminController.updateCommissionSetting);
+
+router.put("/commission-settings/activate/:id",
+  verifyToken, checkRole("superadmin"), adminController.activateCommission);
+
+router.put("/commission-settings/deactivate/:id",
+  verifyToken, checkRole("superadmin"), adminController.deactivateCommission);
+
+// ================= NOTIFICATIONS =================
+
 router.post("/notifications/send",
   verifyToken, checkRole("superadmin"), adminController.sendNotification);
+
 router.get("/notifications/all",
   verifyToken, checkRole("superadmin"), adminController.getAllNotifications);
+
 router.delete("/notifications/delete/:id",
   verifyToken, checkRole("superadmin"), adminController.deleteNotification);
+
 router.get("/notifications/my",
   verifyToken, adminController.getMyNotifications);
+
 router.put("/notifications/read/:id",
   verifyToken, adminController.markAsRead);
+
 router.put("/notifications/read-all",
   verifyToken, adminController.markAllAsRead);
 

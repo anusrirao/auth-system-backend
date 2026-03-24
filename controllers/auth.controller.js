@@ -90,11 +90,15 @@ exports.login = async (req, res) => {
     });
   }
 
-  const isEmail = emailOrMobile.includes('@');
-  const column  = isEmail ? 'email' : 'mobile';
-  const sql     = `SELECT * FROM users WHERE ${column} = ? AND status = 'active'`;
+  // ✅ FIX: Query both email AND mobile columns together
+  // Previously only searched one column — now handles both correctly
+  const sql = `
+    SELECT * FROM users 
+    WHERE (email = ? OR mobile = ?) 
+    AND status = 'active'
+  `;
 
-  db.query(sql, [emailOrMobile], async (err, results) => {
+  db.query(sql, [emailOrMobile, emailOrMobile], async (err, results) => {
 
     if (err) {
       console.error('DB Login Error:', err);
@@ -102,13 +106,22 @@ exports.login = async (req, res) => {
     }
 
     if (results.length === 0) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        message: 'User not found or account is inactive'
+        message: 'Invalid credentials'
       });
     }
 
     const user = results[0];
+
+    // ✅ FIX: Check if password in DB is hashed — if not, give clear error
+    if (!user.password || !user.password.startsWith('$2b$')) {
+      console.error('⚠️  Password for user', emailOrMobile, 'is not hashed in DB!');
+      return res.status(500).json({
+        success: false,
+        message: 'Account setup incomplete. Please contact support.'
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
@@ -119,7 +132,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    const normalizedRole = user.role === 'super_admin' ? 'superadmin' : user.role;
+    // ✅ FIX: Also handle 'super_admin' stored in DB as role
+    const normalizedRole = (user.role === 'super_admin' || user.role === 'superadmin')
+      ? 'superadmin'
+      : user.role;
 
     const token = jwt.sign(
       { id: user.id, role: normalizedRole },
