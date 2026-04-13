@@ -63,10 +63,15 @@ const commissionRoutes = require("./routes/commission.routes");
 app.use("/api/commissions", commissionRoutes);
 console.log("✅ Commission routes loaded");
 
-// Settlement Routes
-const settlementRoutes = require("./routes/settlement.routes");
-app.use("/api/settlement", settlementRoutes);
-console.log("✅ Settlement routes loaded");
+// Wallet Routes
+const walletRoutes = require("./routes/wallet.routes");
+app.use("/api/wallet", walletRoutes);
+console.log("✅ Wallet routes loaded");
+
+// ✅ Transaction Routes — NEW (superadmin full app transactions)
+const transactionRoutes = require("./routes/transaction.routes");
+app.use("/api/transactions", transactionRoutes);
+console.log("✅ Transaction routes loaded");
 
 // ================= STATIC HTML ROUTES =================
 
@@ -96,7 +101,7 @@ app.get("/commission-settings", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send(" Shadval Pay Server Running");
+  res.send("Shadval Pay Server Running");
 });
 
 // ================= API 404 HANDLER =================
@@ -117,17 +122,17 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(` Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
   console.log(`API Base URL: http://51.20.194.61:${PORT}/api`);
 });
 
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${PORT} is already in use.`);
-    console.error(`👉 Fix: Run this command to free the port:`);
-    console.error(`   Windows: netstat -ano | findstr :${PORT}  then  taskkill /PID <PID> /F`);
-    console.error(`   Linux/Mac: kill -9 $(lsof -t -i:${PORT})`);
-    console.error(`   Or simply run: npx kill-port ${PORT}`);
+    console.error(`Port ${PORT} is already in use.`);
+    console.error(`Fix: Run this command to free the port:`);
+    console.error(`  Windows: netstat -ano | findstr :${PORT}  then  taskkill /PID <PID> /F`);
+    console.error(`  Linux/Mac: kill -9 $(lsof -t -i:${PORT})`);
+    console.error(`  Or simply run: npx kill-port ${PORT}`);
     process.exit(1);
   } else {
     console.error("Server error:", err);
