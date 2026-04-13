@@ -1,151 +1,140 @@
-// ============================================================
 // controllers/auth.controller.js
-// ============================================================
+
 const bcrypt = require('bcrypt');
 const jwt    = require('jsonwebtoken');
 const db     = require('../config/db');
 
 // ================= REGISTER =================
 exports.register = async (req, res) => {
-
   const { first_name, last_name, email, mobile, password } = req.body;
 
   if (!first_name || !last_name || !password) {
     return res.status(400).json({
-      success: false,
-      message: 'First name, last name and password are required'
+      message: 'first_name, last_name and password are required'
     });
   }
 
   if (!email && !mobile) {
     return res.status(400).json({
-      success: false,
       message: 'Either email or mobile is required'
     });
   }
 
-  const checkSql = `SELECT * FROM users WHERE email = ? OR mobile = ?`;
+  // FIX 1: Prevent duplicate check from matching NULL = NULL in SQL
+  // Use separate conditions to avoid false positives when one field is NULL
+  let checkSql;
+  let checkParams;
 
-  db.query(checkSql, [email || null, mobile || null], async (err, results) => {
+  if (email && mobile) {
+    checkSql = `SELECT id FROM users WHERE email = ? OR mobile = ?`;
+    checkParams = [email, mobile];
+  } else if (email) {
+    checkSql = `SELECT id FROM users WHERE email = ?`;
+    checkParams = [email];
+  } else {
+    checkSql = `SELECT id FROM users WHERE mobile = ?`;
+    checkParams = [mobile];
+  }
 
+  db.query(checkSql, checkParams, async (err, results) => {
     if (err) {
-      console.error('DB Check Error:', err);
-      return res.status(500).json({ success: false, message: 'Server error' });
+      console.error('Register Check Error:', err);
+      return res.status(500).json({ message: 'Server error' }); // FIX 2: Don't expose DB error details to client
     }
 
     if (results.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email or mobile already registered'
-      });
+      return res.status(409).json({ message: 'Email or mobile already exists' }); // FIX 3: Use 409 Conflict (not 400) for duplicate
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // FIX 4: Wrap async bcrypt in try/catch to handle unexpected errors
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(password, 10);
+    } catch (hashErr) {
+      console.error('Bcrypt Error:', hashErr);
+      return res.status(500).json({ message: 'Server error' });
+    }
 
-    const insertSql = `
+    const sql = `
       INSERT INTO users (first_name, last_name, email, mobile, password, role, status)
       VALUES (?, ?, ?, ?, ?, 'user', 'active')
     `;
 
     db.query(
-      insertSql,
+      sql,
       [first_name, last_name, email || null, mobile || null, hashedPassword],
       (err, result) => {
-
         if (err) {
-          console.error('DB Insert Error:', err);
-          return res.status(500).json({ success: false, message: 'Database error' });
+          console.error('Register Insert Error:', err);
+          return res.status(500).json({ message: 'Server error' }); // FIX 2: No detail leak
         }
 
         res.status(201).json({
           success: true,
-          message: 'User registered successfully ✅',
-          data: {
-            id:        result.insertId,
-            first_name,
-            last_name,
-            email:     email  || null,
-            mobile:    mobile || null,
-            role:      'user',
-            status:    'active'
-          }
+          message: 'Registered successfully',
+          userId: result.insertId
         });
-
       }
     );
-
   });
-
 };
 
 // ================= LOGIN =================
 exports.login = async (req, res) => {
-
   const { emailOrMobile, password } = req.body;
 
   if (!emailOrMobile || !password) {
     return res.status(400).json({
-      success: false,
       message: 'emailOrMobile and password are required'
     });
   }
 
-  // ✅ FIX: Query both email AND mobile columns together
-  // Previously only searched one column — now handles both correctly
+  // FIX 5: Move JWT_SECRET check BEFORE the DB query (fail fast)
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not configured');
+    return res.status(500).json({ message: 'Server configuration error' });
+  }
+
   const sql = `
-    SELECT * FROM users 
-    WHERE (email = ? OR mobile = ?) 
+    SELECT * FROM users
+    WHERE (email = ? OR mobile = ?)
     AND status = 'active'
   `;
 
   db.query(sql, [emailOrMobile, emailOrMobile], async (err, results) => {
-
     if (err) {
-      console.error('DB Login Error:', err);
-      return res.status(500).json({ success: false, message: 'Server error' });
+      console.error('Login DB Error:', err);
+      return res.status(500).json({ message: 'Server error' }); // FIX 2: No detail leak
     }
 
     if (results.length === 0) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const user = results[0];
 
-    // ✅ FIX: Check if password in DB is hashed — if not, give clear error
-    if (!user.password || !user.password.startsWith('$2b$')) {
-      console.error('⚠️  Password for user', emailOrMobile, 'is not hashed in DB!');
-      return res.status(500).json({
-        success: false,
-        message: 'Account setup incomplete. Please contact support.'
-      });
+    // FIX 4: Wrap async bcrypt.compare in try/catch
+    let isMatch;
+    try {
+      isMatch = await bcrypt.compare(password, user.password);
+    } catch (compareErr) {
+      console.error('Bcrypt Compare Error:', compareErr);
+      return res.status(500).json({ message: 'Server error' });
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // ✅ FIX: Also handle 'super_admin' stored in DB as role
-    const normalizedRole = (user.role === 'super_admin' || user.role === 'superadmin')
-      ? 'superadmin'
-      : user.role;
-
     const token = jwt.sign(
-      { id: user.id, role: normalizedRole },
+      { id: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
     res.json({
       success: true,
-      message: 'Login successful ✅',
+      message: 'Login successful',
       token,
       user: {
         id:         user.id,
@@ -153,83 +142,88 @@ exports.login = async (req, res) => {
         last_name:  user.last_name,
         email:      user.email,
         mobile:     user.mobile,
-        role:       normalizedRole,
-        status:     user.status
+        role:       user.role
       }
     });
-
   });
-
 };
 
-// ================= ADD USER (Admin / Super Admin seeding) =================
+// ================= ADD USER =================
 exports.addUser = async (req, res) => {
-
   const { first_name, last_name, email, mobile, password, role } = req.body;
 
-  const allowedRoles = ['admin', 'superadmin'];
-  if (!allowedRoles.includes(role)) {
+  if (!first_name || !last_name || !password || !role) {
     return res.status(400).json({
-      success: false,
-      message: `Invalid role. Allowed: ${allowedRoles.join(', ')}`
+      message: 'first_name, last_name, password and role are required'
     });
   }
 
   if (!email && !mobile) {
     return res.status(400).json({
-      success: false,
       message: 'Either email or mobile is required'
     });
   }
 
-  const checkSql = `SELECT id FROM users WHERE email = ? OR mobile = ?`;
+  // FIX 6: Whitelist allowed roles to prevent privilege escalation
+  const ALLOWED_ROLES = ['user', 'admin', 'moderator']; // adjust to your app's roles
+  if (!ALLOWED_ROLES.includes(role)) {
+    return res.status(400).json({ message: `Invalid role. Allowed: ${ALLOWED_ROLES.join(', ')}` });
+  }
 
-  db.query(checkSql, [email || null, mobile || null], async (err, results) => {
+  // FIX 1: Same NULL-safe duplicate check as register
+  let checkSql;
+  let checkParams;
 
+  if (email && mobile) {
+    checkSql = `SELECT id FROM users WHERE email = ? OR mobile = ?`;
+    checkParams = [email, mobile];
+  } else if (email) {
+    checkSql = `SELECT id FROM users WHERE email = ?`;
+    checkParams = [email];
+  } else {
+    checkSql = `SELECT id FROM users WHERE mobile = ?`;
+    checkParams = [mobile];
+  }
+
+  db.query(checkSql, checkParams, async (err, results) => {
     if (err) {
-      return res.status(500).json({ success: false, message: err.message });
+      console.error('AddUser Check Error:', err);
+      return res.status(500).json({ message: 'Server error' }); // FIX 2: No detail leak
     }
 
     if (results.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email or mobile already registered'
-      });
+      return res.status(409).json({ message: 'Email or mobile already exists' }); // FIX 3: 409 Conflict
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // FIX 4: Wrap async bcrypt in try/catch
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(password, 10);
+    } catch (hashErr) {
+      console.error('Bcrypt Error:', hashErr);
+      return res.status(500).json({ message: 'Server error' });
+    }
 
-    const insertSql = `
+    const sql = `
       INSERT INTO users (first_name, last_name, email, mobile, password, role, status)
       VALUES (?, ?, ?, ?, ?, ?, 'active')
     `;
 
     db.query(
-      insertSql,
+      sql,
       [first_name, last_name, email || null, mobile || null, hashedPassword, role],
       (err, result) => {
-
         if (err) {
-          return res.status(500).json({ success: false, message: err.message });
+          console.error('AddUser Insert Error:', err);
+          return res.status(500).json({ message: 'Server error' }); // FIX 2: No detail leak
         }
 
         res.status(201).json({
           success: true,
-          message: `${role === 'superadmin' ? 'Super Admin' : 'Admin'} created successfully ✅`,
-          data: {
-            id:        result.insertId,
-            first_name,
-            last_name,
-            email:     email  || null,
-            mobile:    mobile || null,
-            role,
-            status:    'active'
-          }
+          message: 'User created successfully',
+          userId: result.insertId
         });
-
       }
     );
-
   });
-
 };

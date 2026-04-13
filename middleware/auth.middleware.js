@@ -1,3 +1,5 @@
+// middleware/auth.middleware.js
+
 const jwt = require("jsonwebtoken");
 
 // ── Verify JWT token ─────────────────────────────────────────
@@ -5,23 +7,21 @@ const verifyToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
-  if (!token) return res.status(401).json({ message: "No token provided" });
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    console.log("SECRET USED:", process.env.JWT_SECRET);
-    console.log("JWT ERR:", err);
-    console.log("DECODED:", decoded);
-
     if (err) {
       return res.status(403).json({ message: "Invalid token: " + err.message });
     }
 
-    req.user = decoded;
+    req.user = decoded; // { id, role }
     next();
   });
 };
 
-// ── Super admin role guard ────────────────────────────────────
+// ── Superadmin role guard ─────────────────────────────────────
 const isSuperAdmin = (req, res, next) => {
   if (req.user?.role !== "superadmin") {
     return res.status(403).json({
@@ -32,7 +32,7 @@ const isSuperAdmin = (req, res, next) => {
   next();
 };
 
-// ── Admin role guard ─────────────────────────────────────────
+// ── Admin role guard ──────────────────────────────────────────
 const isAdmin = (req, res, next) => {
   if (req.user?.role !== "admin" && req.user?.role !== "superadmin") {
     return res.status(403).json({

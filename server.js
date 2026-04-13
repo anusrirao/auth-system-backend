@@ -128,5 +128,5 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API Base URL: http://localhost:${PORT}/api`);
+  console.log(`API Base URL: http://13.51.70.128:${PORT}/api`);
 });

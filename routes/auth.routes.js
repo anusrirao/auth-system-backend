@@ -2,6 +2,8 @@ const express = require("express");
 const router  = express.Router();
 
 const authController = require("../controllers/auth.controller");
+// DEBUG (remove later)
+console.log("AuthController:", authController);
 
 // ================= REGISTER (open — no token needed) =================
 // POST http://localhost:3000/api/auth/register

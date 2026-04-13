@@ -1,24 +1,25 @@
-const express     = require("express");
-const router      = express.Router();
-const verifyToken = require("../middleware/verifyToken");
-const checkRole   = require("../middleware/checkRole");
-const adminDash   = require("../controllers/admin.dashboard.controller");
-const settlement  = require("../controllers/settlement.controller");
+// routes/adminDashboard.routes.js
+
+const express    = require("express");
+const router     = express.Router();
+const { verifyToken, isAdmin } = require("../middleware/auth.middleware");
+const adminDash  = require("../controllers/admin.dashboard.controller");
+const settlement = require("../controllers/settlement.controller");
 
 // ================= USER MANAGEMENT =================
-router.get("/users",                verifyToken, checkRole("admin"), adminDash.getAllUsers);
-router.get("/users/:id",            verifyToken, checkRole("admin"), adminDash.getUserById);
-router.post("/users/create",        verifyToken, checkRole("admin"), adminDash.createUser);
-router.put("/users/activate/:id",   verifyToken, checkRole("admin"), adminDash.activateUser);
-router.put("/users/deactivate/:id", verifyToken, checkRole("admin"), adminDash.deactivateUser);
+router.get("/users",                verifyToken, isAdmin, adminDash.getAllUsers);
+router.get("/users/:id",            verifyToken, isAdmin, adminDash.getUserById);
+router.post("/users/create",        verifyToken, isAdmin, adminDash.createUser);
+router.put("/users/activate/:id",   verifyToken, isAdmin, adminDash.activateUser);
+router.put("/users/deactivate/:id", verifyToken, isAdmin, adminDash.deactivateUser);
 
 // ================= BENEFICIARY =================
-router.post("/beneficiary/add",        verifyToken, checkRole("admin"), settlement.addBeneficiary);
-router.get("/beneficiary/list",        verifyToken, checkRole("admin"), settlement.listBeneficiaries);
-router.put("/beneficiary/verify/:id",  verifyToken, checkRole("admin"), settlement.verifyBeneficiary);
+router.post("/beneficiary/add",       verifyToken, isAdmin, settlement.addBeneficiary);
+router.get("/beneficiary/list",       verifyToken, isAdmin, settlement.listBeneficiaries);
+router.put("/beneficiary/verify/:id", verifyToken, isAdmin, settlement.verifyBeneficiary);
 
 // ================= SETTLEMENT =================
-router.post("/settlement/initiate",    verifyToken, checkRole("admin"), settlement.initiateSettlement);
-router.get("/settlement/history",      verifyToken, checkRole("admin"), settlement.getSettlementHistory);
+router.post("/settlement/initiate", verifyToken, isAdmin, settlement.initiateSettlement);
+router.get("/settlement/history",   verifyToken, isAdmin, settlement.getSettlementHistory);
 
 module.exports = router;
