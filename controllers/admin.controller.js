@@ -25,7 +25,6 @@ exports.getOverviewStats = (req, res) => {
       COALESCE(SUM(commission), 0) AS total_commission
     FROM transactions
   `;
-
   const activeAdminsSql = `
     SELECT 
       SUM(CASE WHEN status = 'active'   THEN 1 ELSE 0 END) AS active_admins,
@@ -405,7 +404,6 @@ exports.updateCommissionSetting = (req, res) => {
 // ================= ACTIVATE COMMISSION (SUPER ADMIN) =================
 exports.activateCommission = (req, res) => {
   const { id } = req.params;
-
   db.query(
     "UPDATE commission_settings SET status = 'active', updated_at = NOW() WHERE id = ?",
     [id],
@@ -424,7 +422,6 @@ exports.activateCommission = (req, res) => {
 // ================= DEACTIVATE COMMISSION (SUPER ADMIN) =================
 exports.deactivateCommission = (req, res) => {
   const { id } = req.params;
-
   db.query(
     "UPDATE commission_settings SET status = 'inactive', updated_at = NOW() WHERE id = ?",
     [id],
